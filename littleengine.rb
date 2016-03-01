@@ -20,8 +20,11 @@ a note, this was created using Ruby 2.2.4.23 on
 Windows 7. Please see the README for directions
 on how to run this demo.
 
+THIS IS THE DEBUG VERSION. It has an optional debug window to display
+error messages in.
+
 author:  Melinda Robertson
-version: 1.0
+version: 1.1
 =end
 
 #I'm using fxruby for the GUI portion.
@@ -30,6 +33,7 @@ include Fox
 
 #How many milliseconds the loop should take to run.
 $MS_PER_FRAME = 0.08
+$DEBUG = true
 
 #All basic components of the engine are in this
 #module.
@@ -150,6 +154,8 @@ class LittleGame
     #Notice that this has no looping structure.
     #The 'loop' portion is actually in the GUI.
     def run
+        #$FRAME.log(1, "Running.")
+        #puts $DEBUG
         return if not @canvas
         if (@newscene)
             @scene = @newscene
@@ -158,7 +164,6 @@ class LittleGame
         lasttick = (@time.to_f)
         @time = Time.now
         @tick = (@time.to_f)-lasttick
-        #puts @tick
         loop
     end
     #The guts and glory of the game loop.
@@ -195,10 +200,21 @@ end
 class LittleFrame < FXMainWindow
     #Creates the window components and adds the game.
     def initialize (app, w, h, game)
-        super(app, "Game Frame", :width => w, :height => h)
+        myh = h
+        if $DEBUG
+          myh = (h*1.4)
+        end
+        super(app, "Game Frame", :width => w, :height => myh)
         @app = app
-        @contents = FXHorizontalFrame.new(self, LAYOUT_FILL_X|LAYOUT_FILL_Y)
+        @contents = FXVerticalFrame.new(self, LAYOUT_FILL_X|LAYOUT_FILL_Y)
         @canvas = FXCanvas.new(@contents, :opts => LAYOUT_FILL_X|LAYOUT_FILL_Y|LAYOUT_TOP|LAYOUT_LEFT)
+        if $DEBUG
+          debugframe = FXVerticalFrame.new(@contents,:opts => FRAME_SUNKEN|LAYOUT_FILL_X|LAYOUT_TOP|LAYOUT_LEFT)
+          FXLabel.new(debugframe, "Console", nil, JUSTIFY_CENTER_X|LAYOUT_FILL_X)
+          FXHorizontalSeparator.new(debugframe, SEPARATOR_RIDGE|LAYOUT_FILL_X)
+          @@console = FXText.new(debugframe, opts: TEXT_READONLY|TEXT_WORDWRAP|TEXT_AUTOSCROLL|LAYOUT_FILL_X)
+          @@console.setText("Starting...\n")
+        end
         @canvas.backColor = Fox.FXRGB(0, 0, 0)
         game.canvas = @canvas
         @game = game
@@ -210,6 +226,9 @@ class LittleFrame < FXMainWindow
         @app.create
         @app.addTimeout($MS_PER_FRAME * 1000.0, :repeat => true) do
             @game.run
+            #Messages can be logged by using this command
+            #anywhere in the running game.
+            #$FRAME.log(0, "Game is running")
         end
         show(PLACEMENT_SCREEN)
         @app.run
@@ -220,16 +239,26 @@ class LittleFrame < FXMainWindow
         str += "\n" + @game.to_s
         str += "\n" + @canvas.to_s
     end
+    def log (id=0, error="test", exit=false)
+      if @@console
+        time = Time.now
+        @@console.appendText("#{time}: #{id}: #{error}\n")
+      end
+      if exit
+        abort
+    end
+end
 end
 end
 
+=begin
 #This is a trial run to test that it's working.
 if __FILE__ == $0
     app = FXApp.new('Little Game', 'Test')
     game = LittleEngine::LittleGame.new
     game.changescene(LittleEngine::Scene.new(game))
-    frame = LittleEngine::LittleFrame.new(app, 200, 200, game)
-    frame.start
+    $FRAME = LittleEngine::LittleFrame.new(app, 400, 300, game)
+    $FRAME.start
 end
-
+=end
 

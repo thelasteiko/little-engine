@@ -29,3 +29,8 @@ To put Ruby and Gem into your path variable (Windows users) go to:
 * Start > Control Panel > System > Advanced System Settings > Advanced > Environment Variables
 * Under user variables you may see Path. If it's not there add it.
 * Click on edit and paste the bin file location for your Ruby directory at the end of the value (usually something like "C:\Ruby22\bin").
+
+##File Descriptions
+* littleengine.rb is the game engine framework itself.
+* tester.rb demonstrates how the engine can be used as well as the debugger.
+* test2.rb is a simpler test of only the framework without any extensions.
