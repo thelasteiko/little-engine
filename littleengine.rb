@@ -33,13 +33,14 @@ include Fox
 
 #How many milliseconds the loop should take to run.
 $MS_PER_FRAME = 0.08
+#Set this to true to display the debug window.
 $DEBUG = true
 
 #All basic components of the engine are in this
 #module.
 module LittleEngine
 #Game objects do all the heavy lifting in the game.
-#If there's something to see there's a game objects
+#If there's something to see there's a game object
 #behind it. If there's something to do, there's a
 #game object doing it.
 class GameObject
