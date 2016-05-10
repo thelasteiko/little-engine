@@ -6,8 +6,8 @@ include Fox
 
 # In order to use the debugger, these classes
 # must be wrapped in a module that includes LittleEngine
-module MyGame
-  include LittleEngine
+#module MyGame
+  #include LittleEngine
   class TestObject < GameObject
     def initialize (group)
       super
@@ -28,6 +28,7 @@ module MyGame
     def draw (graphics, tick)
       if @timeout == 0
         $FRAME.log(0, "Drawing #{@fillcolor} at (#{@x},#{@y}) on #{graphics}")
+        $FRAME.logtofile(self, "draw", "Test message; drawing box.");
       end
       graphics.foreground = @fillcolor
       graphics.fillRectangle(@x,@y,20,20)
@@ -36,17 +37,17 @@ module MyGame
   class TestScene < Scene
     def initialize (game)
       super
-      @groups[:testgroup] = LittleEngine::Group.new(self)
-      push(:testgroup, MyGame::TestObject.new(:testgroup))
+      @groups[:testgroup] = Group.new(self)
+      push(:testgroup, TestObject.new(:testgroup))
     end
   end
-end
+#end
 
 #This is a trial run to test that it's working.
 if __FILE__ == $0
     app = FXApp.new('Little Game', 'Test')
-    game = LittleEngine::LittleGame.new
-    game.changescene(MyGame::TestScene.new(game))
-    $FRAME = LittleEngine::LittleFrame.new(app, 400, 300, game)
+    game = LittleGame.new
+    game.changescene(TestScene.new(game))
+    $FRAME = LittleFrame.new(app, 400, 300, game)
     $FRAME.start
 end

@@ -27,6 +27,9 @@ author:  Melinda Robertson
 version: 1.1
 =end
 
+#for logging events in a file
+require_relative 'littlelog'
+
 #I'm using fxruby for the GUI portion.
 require 'fox16'
 include Fox
@@ -35,14 +38,17 @@ include Fox
 $MS_PER_FRAME = 0.08
 #Set this to true to display the debug window.
 $DEBUG = true
+#Set this to true to save statistics and comments to file.
+$LOG = true
 
 #All basic components of the engine are in this
 #module.
-module LittleEngine
+
 #Game objects do all the heavy lifting in the game.
 #If there's something to see there's a game object
 #behind it. If there's something to do, there's a
 #game object doing it.
+#To use the game object, overwrite the functions.
 class GameObject
     #Creates the object.
     def initialize (group)
@@ -156,7 +162,6 @@ class LittleGame
     #The 'loop' portion is actually in the GUI.
     def run
         #$FRAME.log(1, "Running.")
-        #puts $DEBUG
         return if not @canvas
         if (@newscene)
             @scene = @newscene
@@ -199,23 +204,25 @@ end
 #also calls the run method periodically to keep the
 #game going. The framework used is from fxruby.
 class LittleFrame < FXMainWindow
+    attr_reader :logger
     #Creates the window components and adds the game.
     def initialize (app, w, h, game)
         myh = h
-        if $DEBUG
+        if $DEBUG #make room for the log console
           myh = (h*1.4)
         end
         super(app, "Game Frame", :width => w, :height => myh)
-        @app = app
+        @app = app #this is the main application
         @contents = FXVerticalFrame.new(self, LAYOUT_FILL_X|LAYOUT_FILL_Y)
         @canvas = FXCanvas.new(@contents, :opts => LAYOUT_FILL_X|LAYOUT_FILL_Y|LAYOUT_TOP|LAYOUT_LEFT)
-        if $DEBUG
+        if $DEBUG #create the console for debug messages
           debugframe = FXVerticalFrame.new(@contents,:opts => FRAME_SUNKEN|LAYOUT_FILL_X|LAYOUT_TOP|LAYOUT_LEFT)
           FXLabel.new(debugframe, "Console", nil, JUSTIFY_CENTER_X|LAYOUT_FILL_X)
           FXHorizontalSeparator.new(debugframe, SEPARATOR_RIDGE|LAYOUT_FILL_X)
           @@console = FXText.new(debugframe, opts: TEXT_READONLY|TEXT_WORDWRAP|TEXT_AUTOSCROLL|LAYOUT_FILL_X)
           @@console.setText("Starting...\n")
         end
+        @@logger = LittleLogger.new if $LOG
         @canvas.backColor = Fox.FXRGB(0, 0, 0)
         game.canvas = @canvas
         @game = game
@@ -226,7 +233,8 @@ class LittleFrame < FXMainWindow
     def start
         @app.create
         @app.addTimeout($MS_PER_FRAME * 1000.0, :repeat => true) do
-            @game.run
+          @logger.inc(:run) if @logger
+          @game.run
             #Messages can be logged by using this command
             #anywhere in the running game.
             #$FRAME.log(0, "Game is running")
@@ -234,22 +242,31 @@ class LittleFrame < FXMainWindow
         show(PLACEMENT_SCREEN)
         @app.run
     end
+    #Shows details of the frame and its objects.
+    #@return [String] representation of the application.
     def to_s
         str = ""
         str += @app.to_s
         str += "\n" + @game.to_s
         str += "\n" + @canvas.to_s
     end
-    def log (id=0, error="test", exit=false)
+    #Logs a comment to the console.
+    #@param id [Numerical] is the error id if applicable.
+    #@param message [String] is the message to pint to the console.
+    #@param exit [true, false] is the optional parameter to signal
+    #                          the application to close.
+    def log (id=0, message="test", exit=false)
       if @@console
         time = Time.now
-        @@console.appendText("#{time}: #{id}: #{error}\n")
+        @@console.appendText("#{time}: #{id}: #{message}\n")
       end
       if exit
         abort
+      end
     end
-end
-end
+    def logtofile(sender, method="", note="")
+      @@logger.logtofile(sender, method, note) if @@logger
+    end
 end
 
 =begin
