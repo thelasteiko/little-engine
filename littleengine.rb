@@ -28,7 +28,7 @@ version: 1.1
 =end
 
 #for logging events in a file
-require_relative 'littlelog'
+require_relative 'v1/littlelog'
 
 #I'm using fxruby for the GUI portion.
 require 'fox16'
