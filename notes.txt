@@ -1,0 +1,28 @@
+Not that, we need a log file, statistics and performance information.
+Logger:
+  What do we need to include in a logger?
+  Time:Run Time: Class Method  Note
+  What about statistics?
+  Have a csv file
+  run time
+  how many loops
+  animations running
+  how long some thing took
+  modes or windows
+  user time in a scene...etc.
+  
+So what we need to do next is add input from the user, animations,
+images and sound.
+
+After these basic components, start on APIs for interface components.
+
+Input:
+  Right now the input is a queue which is read from each cycle.
+  This is synchronized input.
+  We may need asynchronous input for faster paced games.
+  Should there be an option to choose?
+  I think that having both options would be useful.
+  The programmer can use the queue when the program doesn't need to respond immediately.
+  Else they can have the scene react right away.
+  This would also be based on which scene they are in.
+  Ex; A menu doesn't generally need asynchronous responses.
