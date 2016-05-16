@@ -20,17 +20,26 @@ include Fox
       if @timeout == 0
         @x += 5
         @timeout = 10
-        $FRAME.log(0, "Updated Position")
+        #$FRAME.log(0, "Updated Position")
       else
         @timeout -= 1
+      end
+      if not @font
+        @font = FXFont.new($FRAME.getApp(), "times", 12, FONTWEIGHT_BOLD)
+        @font.create
+        $FRAME.log(0, "Font: " + @font.to_s)
       end
     end
     def draw (graphics, tick)
       if @timeout == 0
-        $FRAME.log(0, "Drawing #{@fillcolor} at (#{@x},#{@y}) on #{graphics}")
-        $FRAME.logtofile(self, "draw", "Test message; drawing box.");
+        #$FRAME.log(0, "Drawing #{@fillcolor} at (#{@x},#{@y}) on #{graphics}")
+        #$FRAME.logtofile(self, "draw", "Test message; drawing box.");
       end
       graphics.foreground = @fillcolor
+      if @font
+        graphics.font = @font
+        graphics.drawText(@x, @y + 40, "Hello")
+      end
       graphics.fillRectangle(@x,@y,20,20)
     end
   end

@@ -1,10 +1,3 @@
-=begin
-The layout classes are a set of directions of how to display
-components. this is meant to be used with the littlemenu ruby
-suite.
-=end
-
-
 module LittleLayout
   
   class HorizontalFloat
