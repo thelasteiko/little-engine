@@ -2,6 +2,7 @@
 
 require 'fox16'
 require_relative 'littleengine'
+require_relative 'v2/littlemenu'
 include Fox
 
 # In order to use the debugger, these classes
@@ -48,6 +49,12 @@ include Fox
       super
       @groups[:testgroup] = Group.new(self)
       push(:testgroup, TestObject.new(:testgroup))
+      c = Component.new(:menu, nil, 20, 20, 100, 50)
+      c2 = Component.new(:menu, c, 0, 0, 35, 20)
+      c.add(c2)
+      c.add(Component.new(:menu, c, 0,0,10,5))
+      c.show
+      push(:menu, c)
     end
   end
 #end

@@ -10,108 +10,16 @@ What does a menu need?
   location/constraints
 =end
 
-requires_relative 'littleshape.rb'
-requires_relative 'littlelayout.rb'
+require_relative 'littleshape'
+require_relative 'littlelayout'
 
-class Contraint
-  attr_accessor:  x   #top left
-  attr_accessor:  y   #top left
-  attr_accessor:  x1  #bottom right
-  attr_accessor:  y1  #bottom right
-  attr_accessor:  w   #width
-  attr_accessor:  h   #height
-  attr_accessor:  r   #radius
-  attr_accessor:  xc  #center x
-  attr_accessor:  yc  #center y
-  
-  def initialize (x=0, y=0, w=0, h=0)
-    @x = x
-    @y = y
-    @w = w
-    @h = h
-    if w = h 
-      @r = w/2
-      @xc = x+@r
-      @yc = y+@r
-    else
-      @r = 0
-      @xc = 0
-      @yc = 0
-    end
-    @x1 = x+w
-    @y1 = y+h
-  end
-  def clone
-    Constraint.new(@x,@y,@w,@h)
-  end
-  # Sets the x and y values and re-calculates derived values.
-  # @param constraint [Contraint] holds the new x and y values.
-  def set(constraint)
-    @x = constraint.x
-    @y = constraint.y
-    if @r > 0
-      @xc = @x+@r
-      @yc = @y+@r
-    end
-    @x1 = @x+@w
-    @x2 = @x+@w
-  end
-end
-
-#To draw the component I need to have a shape to draw.
-#Fox.FXRGB(255, 235, 205)
-#use the fx ruby rgb colors
-class Theme
-  #http://www.rubydoc.info/gems/fxruby/Fox/FXColor
-  attr_accessor :stroke_color #border
-  attr_accessor :fill_color   #inside shape
-  #string representing style: "dash", "dot"
-  attr_accessor :border_style
-  #pixel point size of border
-  attr_accessor :border_size
-  #http://www.rubydoc.info/gems/fxruby/Fox/FXFont
-  attr_accessor :font_type
-  attr_accessor :font_size
-  attr_accessor :font_color
-  attr_accessor :font_weight
-  attr_accessor :corner_style
-  #Creates the default theme.
-  def initialize
-    @stroke_color = Fox.FXRGB(0,0,0)
-    @fill_color = Fox.FXRGB(255,255,255)
-    @border_style = "solid"
-    @border_size = 2
-    #@font = FXFont.new(getApp(), "times", 36, FONTWEIGHT_NORMAL)
-    @font_type = "times"
-    @font_size = 12
-    @font_color = Fox.FXRGB(0,0,0)
-    @font_weight = FONTWEIGHT_NORMAL
-    @corner_style = "sharp"
-  end
-  #Returns a FXFont instance
-  def font(app)
-    font = FXFont.new(app, @font_type, @font_size, @font_weight)
-    font.create
-    return font
-  end
-  def clone
-    theme = Theme.new
-    theme.stroke_color = @stroke_color.clone if @stroke_color
-    theme.fill_color = @fill_color.clone if @fill_color
-    theme.border_style = @border_style.clone if @border_style
-    theme.border_size = @border_size if @border_size
-    theme.font_type = @font_type.clone if @font_type
-    theme.font_size = @font_size if @font_size
-    theme.font_weight = @font_weight if @font_weight
-    theme.font_color = @font_color.clone if @font_color
-    theme.corner_style = @corner_style.clone if @corner_style
-    return theme
-  end
-end
-
+# Base component for a menu item. This implementation
+# can have child members.
+# @author Melinda Robertson
+# @version 20160603
 class Component < GameObject
   #parent must be defined
-  attr_reader   :parent
+  attr_accessor :parent
   attr_reader   :children
   #adopt the theme from parent unless theme is defined
   attr_reader   :layout
@@ -134,13 +42,13 @@ class Component < GameObject
     @children = []
     constraint = Constraint.new(x,y,w,h)
     if parent
-      @shape = parent.shape.copy
+      @shape = parent.shape.clone
       @shape.theme = parent.shape.theme
       @shape.constraint = constraint
     else
-      @shape = Shape::Rectangle.new(constraint, Theme.new)
+      @shape = LittleShape::Rectangle.new(constraint, Theme.new)
     end
-    @layout = FloatLayout.new(@shape.constraint)
+    @layout = LittleLayout::HorizontalFloat.new(@shape.constraint)
   end
   
   # Adds a component as a child.
@@ -148,7 +56,6 @@ class Component < GameObject
   # shape and theme if they have not been defined yet.
   # @param child [Component] is the component to add.
   def add(child)
-    child.parent = self
     @children.push(child)
     safe_add_child(child, child.visible?)
   end
@@ -206,39 +113,106 @@ class Component < GameObject
     safe_add_child(child, false)
     return ch2
   end
-  # Inserts a new component into the layout.
-  # 
+  # Inserts a new component into the layout. This does not automatically
+  # show the child. Set show before adding.
+  # @param index [Fixnum] is the index of the child to insert in front of.
+  # @param child [Component] is the component to insert.
   def insert(index, child)
     @children.insert(index, child)
     safe_add_child(child, false)
   end
-  def update
-    @layout.update(@constraint,@children)
+  def count
+    @children.size
   end
+  # Updates the layout by recreating it.
+  def update
+    @layout.update(@shape.constraint,@children)
+  end
+  # Draws this and all child components.
+  # @param graphics [FXDCWindow] is the graphics component for a canvas
+  #                              where objects will be drawn.
+  # @param tick [Fixnum] is the amount of time since the last game loop started.
   def draw (graphics, tick)
-    @shape.draw(graphics, tick) if visible?
-    @children.each do |i|
-      i.draw(graphics, tick)
+    if visible?
+      @shape.draw(graphics, tick)
+      @children.each do |i|
+        i.draw(graphics, tick)
+      end
     end
   end
-  
+  # Checks if the component should be drawn.
   def visible?
-    @isVisible
+    @isVisible |= false
   end
+  # Sets the component to be drawn.
   def show
+    @children.each {|i| i.show}
     @isVisible = true
   end
+  # Sets the component to not be drawn.
   def hide
+    @children.each {|i| i.hide}
     @isVisible = false
   end
   
+  def to_s
+    str = "Parent: " + (@parent ? "T" : "F") + "\n"
+    str += "Children: " + (@children ? count.to_s : "0") + "\n"
+    str += "Layout: " + (@layout ? @layout.to_s : "F") + "\n"
+    str += "Shape: " + (@shape ? @shape.to_s : "F")
+    return str
+  end
+  
 private
+  # Adds a child by updating the shape, theme and adding it to the layout.
+  # @param child [Component] is the component to add.
+  # @param add_to_layout [TrueClass] says whether or not to add the component to the layout.
   def safe_add_child(child, add_to_layout)
+    child.parent = self
     if not child.shape
-      child.shape = @shape.copy
+      child.shape = @shape.clone
       child.shape.theme = @shape.theme
     end
     @layout.add(child) if add_to_layout
+  end
+end
+
+module MenuType
+  module SelectionContainer
+    def select(index)
+      if @children
+        if @children[index].selectable?
+          @children[index].select
+          @selected_child = @children[index]
+        end
+      end
+    end
+  end
+  module Selectable
+    def selected?
+      @selected |= false
+    end
+    def selectable?
+      @selectable |= true
+    end
+    def select
+      @selected = true
+    end
+    def deselect
+      @selected = false
+    end
+  end
+  
+  module DragAndDrop
+    def draggable?
+      @draggable |= true
+    end
+  end
+  #Scrollable requires a scroll bar.
+  module Scrollable
+    def scrollable?
+      @scrollable |= true
+    end
   end
 end
 

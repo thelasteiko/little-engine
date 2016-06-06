@@ -39,7 +39,7 @@ $MS_PER_FRAME = 0.08
 #Set this to true to display the debug window.
 $DEBUG = true
 #Set this to true to save statistics and comments to file.
-$LOG = true
+$LOG = false
 
 #All basic components of the engine are in this
 #module.
@@ -127,7 +127,7 @@ class Scene
     #If the group doesn't exist, it adds a new group.
     def push (group, value)
         if (!@groups[group])
-            @groups[group] = new Group(self)
+            @groups[group] = Group.new(self)
         end
         @groups[group].push(value)
     end
