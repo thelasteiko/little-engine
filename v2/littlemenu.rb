@@ -36,11 +36,16 @@ class Component < GameObject
   # @param y [Numeric] is the y coordinate of the top left corner.
   # @param w [Numeric] is the width.
   # @param h [Numeric] is the height.
-  def initialize (group, parent=nil, x=0, y=0, w=0, h=0)
+  def initialize (group, parent=nil, x=0, y=0, w=0, h=0, default=true)
     super(group)
     @parent = parent
     @children = []
     constraint = Constraint.new(x,y,w,h)
+    #why did i do this?
+    start_default(parent) if default
+  end
+  
+  def start_default(parent)
     if parent
       @shape = parent.shape.clone
       @shape.theme = parent.shape.theme
@@ -167,28 +172,50 @@ private
   # Adds a child by updating the shape, theme and adding it to the layout.
   # @param child [Component] is the component to add.
   # @param add_to_layout [TrueClass] says whether or not to add the component to the layout.
-  def safe_add_child(child, add_to_layout)
+  def safe_add_child(child, add_to_layout, adopt_theme)
     child.parent = self
     if not child.shape
       child.shape = @shape.clone
+      #child.shape.theme = @shape.theme
+    end
+    if adopt_theme
       child.shape.theme = @shape.theme
     end
     @layout.add(child) if add_to_layout
   end
 end
 
+# Defines types of menus and adds helper methods.
 module MenuType
-  module SelectionContainer
-    def select(index)
-      if @children
+  # The component contains other components that can be selected.
+  module SelectContainer
+    # Selects a child from the components' list of children.
+    # @param index [Fixnum] is the index of the child to select.
+    def select_index(index)
+      if @children and @children[index]
+        if @selected_child
+          @selected_child.deselect
+        end
         if @children[index].selectable?
           @children[index].select
           @selected_child = @children[index]
         end
       end
     end
+    def select_child(child)
+      if @children and @children.include?(child)
+        select_index(@children.index(child))
+      end
+    end
+    def deselect_child
+      if @selected_child
+        @selected_child.deselect
+        @selected_child = nil
+      end
+    end
   end
-  module Selectable
+  #The component is able to be selected by the user.
+  module Select
     def selected?
       @selected |= false
     end
@@ -203,13 +230,13 @@ module MenuType
     end
   end
   
-  module DragAndDrop
+  module Drag
     def draggable?
       @draggable |= true
     end
   end
   #Scrollable requires a scroll bar.
-  module Scrollable
+  module Scroll
     def scrollable?
       @scrollable |= true
     end

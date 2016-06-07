@@ -4,6 +4,9 @@ a shape on the canvas. The shape is part of a component that
 can have child components all with their own shape.
 =end
 
+# Defines bounds for a shape.
+# @author Melinda Robertson
+# @version 20160606
 class Constraint
   attr_accessor :x   #top left
   attr_accessor :y   #top left
@@ -14,7 +17,11 @@ class Constraint
   attr_accessor :r   #radius
   attr_accessor :xc  #center x
   attr_accessor :yc  #center y
-  
+  # Creates a constraint object.
+  # @param x [Fixnum] is the top left x coordinate.
+  # @param y [Fixnum] is the top left y coordinate.
+  # @param w [Fixnum] is the width.
+  # @param h [Fixnum] is the height.
   def initialize (x=0, y=0, w=0, h=0)
     @x = x
     @y = y
@@ -32,6 +39,7 @@ class Constraint
     @x1 = x+w
     @y1 = y+h
   end
+  # Creates a deep copy of the object.
   def clone
     c = Constraint.new(@x,@y,@w,@h)
     return c
@@ -48,7 +56,7 @@ class Constraint
     @x1 = @x+@w
     @x2 = @x+@w
   end
-  
+  # Returns a string representation of the object.
   def to_s
     str = "{x:" + @x.to_s + ",y:" + @y.to_s + ",x1:" + @x1.to_s + ",y1:" + @y1.to_s + ",w:"
     str += @w.to_s + ",h:" + @h.to_s + ",r:" + @r.to_s + "," + @xc.to_s + "," + @yc.to_s + "}"
@@ -59,6 +67,8 @@ end
 #To draw the component I need to have a shape to draw.
 #Fox.FXRGB(255, 235, 205)
 #use the fx ruby rgb colors
+
+# Colors, size and style related to appearance of a shape.
 class Theme
   #http://www.rubydoc.info/gems/fxruby/Fox/FXColor
   attr_accessor :stroke_color #border
@@ -74,6 +84,7 @@ class Theme
   attr_accessor :font_color
   attr_accessor :font_weight
   attr_accessor :corner_style
+  
   #Creates the default theme.
   def initialize
     @stroke_color = Fox.FXRGB(0,0,0)
@@ -88,12 +99,15 @@ class Theme
     @font_weight = FONTWEIGHT_NORMAL
     @corner_style = "sharp"
   end
-  #Returns a FXFont instance
+  
+  # Returns a FXFont instance.
+  # @param app [FXApp] is the parent application.
   def font(app)
     font = FXFont.new(app, @font_type, @font_size, @font_weight)
     font.create
     return font
   end
+  # Creates a deep copy of the object.
   def clone
     theme = Theme.new
     theme.stroke_color = @stroke_color if @stroke_color
@@ -108,6 +122,7 @@ class Theme
     theme.corner_style = @corner_style.clone if @corner_style
     return theme
   end
+  # Creates a string representation of the object.
   def to_s
     str = "{SC:" + (@stroke_color ? @stroke_color.to_s : "*") + ","
     str += "FC:" + (@fill_color ? @fill_color.to_s : "*") + ","
@@ -118,22 +133,25 @@ class Theme
   end
 end
 
-#The shape class defines how to draw a certain shape.
-#this is just a base class giving directions as to what
-#needs to be in the shape...I think...
+# The shape module holds classes that represent different
+# shapes.
 module LittleShape
   class Rectangle
-    attr_accessor :constraint
-    attr_accessor :theme
-    #@param constraint [Constraint] lists the numerical size parameters.
-    #@param theme [Theme] lists the color and style parameters.  
+    attr_accessor :constraint #shape boundaries
+    attr_accessor :theme      #color and style
+    
+    # Creates a rectangle object.
+    # @param constraint [Constraint] lists the numerical size parameters.
+    # @param theme [Theme] lists the color and style parameters.  
     def initialize (constraint, theme)
       @constraint = constraint
       @theme = theme
     end
-    #@param graphics [FXDCWindow] the display component on which
-    #                             the shape will be drawn.
-    #@param tick [Float] the length of the current game loop.
+    
+    # Draws the shape with a graphics object.
+    # @param graphics [FXDCWindow] the display component on which
+    #                              the shape will be drawn.
+    # @param tick [Float] the length of the current game loop.
     def draw (graphics, tick)
       if @theme.fill_color
         graphics.foreground = @theme.fill_color
@@ -147,14 +165,27 @@ module LittleShape
       end
       #TODO support for borders and corner styles
     end
+    
+    # Creates a deep copy of the object.
     def clone
       Rectangle.new(@constraint.clone, @theme.clone)
     end
     
+    # Short cut to reset x and y values according to the
+    # given constraint.
+    # @param constraint [Constraint] holds the new x and y values.
     def set (constraint)
       @constraint.set(constraint)
     end
     
+    # Determines if a point intersects with this shape.
+    # @param x [Fixnum] is the x coordinate.
+    # @param y [Fixnum] is the y coordinate.
+    def inside?(x, y)
+      @constraint.x < x and @constraint.x1 > x and @constraint.y < y and @constraint.y1 > y
+    end
+    
+    # Creates a string representation of the object.
     def to_s
       str = "Rectangle:\n"
       str += "\tConstraint: " + (@constraint ? @constraint.to_s : "*") + "\n"
