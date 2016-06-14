@@ -90,16 +90,18 @@ end
 #The scene is generally the object that should be
 #overwritten to create custom levels.
 class Scene
-    #Initializes the scene by setting up variables
-    #and adding starting groups.
+    # Initializes the scene by setting up variables
+    # and adding starting groups.
+    # @param game [LittleGame] is the game object owner.
     def initialize (game)
       @game = game
       @groups = Hash.new
       @inputqueue = []
       startinput
     end
-    #Add input listeners for the canvas here.
+    # TODO I need to rethink this.
     def startinput
+      
     end
     #Processes the input added to the inputqueue.
     #Each tick serves only one input at a time.
