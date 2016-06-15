@@ -48,45 +48,56 @@ $LOG = false
 #game object doing it.
 #To use the game object, overwrite the functions.
 class GameObject
-    #Creates the object.
+    # Creates the object.
+    # @param group [Group] is the group this object belongs to.
     def initialize (group)
         @group = group
     end
-    #Update variables (hint: position) here.
+    # Update variables (hint: position) here.
     def update
     end
-    #Draw the object (picture or shape) using
-    #the graphics from the canvas.
+    # Draw the object (picture or shape) using
+    # the graphics from the canvas.
+    # @param graphics [FXDCWindow] is the graphics object with
+    #                              which to draw.
+    # @param tick [Numerical] is the milliseconds since the last
+    #                         game loop started.
     def draw (graphics, tick)
     end
 end
-#I use groups to separate game objects into
-#categories. This helps with layering when objects
-#have overlapping positions on the screen.
+# I use groups to separate game objects into
+# categories. This helps with layering when objects
+# have overlapping positions on the screen.
 class Group
-    #Creates the group.
+    # Creates the group.
+    # @param scene [Scene] is the scene this group belongs to.
     def initialize (scene)
         @entities = []
         @scene = scene
     end
-    #Updates the objects in this group.
+    # Updates the objects in this group.
     def update
         @entities.each {|i| i.update}
     end
-    #Tells the objects in this group to draw.
+    # Tells the objects in this group to draw.
+    # @param graphics [FXDCWindow] is the graphics object with
+    #                              which to draw.
+    # @param tick [Numerical] is the milliseconds since the last
+    #                         game loop started.
     def draw (graphics, tick)
         @entities.each {|i| i.draw(graphics, tick)}
     end
-    #Add a new object to this group.
+    # Add a new object to this group.
+    # @param value [GameObject] is the object to add.
     def push (value)
         @entities.push(value)
     end
 end
-#The scene is a convenient way to switch entire sets
-#of objects. This way, the game can switch levels or
-#from a title screen to a level and back.
-#The scene is generally the object that should be
-#overwritten to create custom levels.
+# The scene is a convenient way to switch entire sets
+# of objects. This way, the game can switch levels or
+# from a title screen to a level and back.
+# The scene is generally the object that should be
+# overwritten to create custom levels.
 class Scene
     # Initializes the scene by setting up variables
     # and adding starting groups.
@@ -97,42 +108,59 @@ class Scene
       @inputqueue = []
       startinput
     end
-    #Calls update on all the groups.
+    # Calls update on all the groups.
     def update
       @groups.each{|key, value| value.update}
     end
-    #Calls draw on all the groups.
-    #If a particular layering scheme needs to be
-    #used, overwrite this.
+    # Calls draw on all the groups.
+    # If a particular layering scheme needs to be
+    # used, overwrite this.
+    # @param graphics [FXDCWindow] is the graphics object with
+    #                              which to draw.
+    # @param tick [Numerical] is the milliseconds since the last
+    #                         game loop started.
     def draw (graphics, tick)
       @groups.each{|key, value| value.draw(graphics, tick)}
     end
-    #Adds a new game object to the indicated group.
-    #If the group doesn't exist, it adds a new group.
+    # Adds a new game object to the indicated group.
+    # If the group doesn't exist, it adds a new group.
     def push (group, value)
         if (!@groups[group])
             @groups[group] = Group.new(self)
         end
         @groups[group].push(value)
     end
+    # The input map that relates input events to method names.
+    # @return [Hash] of type [Numerical, Symbol] where events are
+    #                registered as numbers and responses are symbols
+    #                representing method names.
     def input_map
-      []
+      {}
     end
 end
-#Here are guts of the game engine. This has the
-#actual game loop which runs continuosly, updating
-#each object until the program is halted.
-#I recommend checking out
-#http://gameprogrammingpatterns.com/game-loop.html
-#to see how a game loop works. This website was
-#used as the resource for this engine.
+# Here are guts of the game engine. This has the
+# actual game loop which runs continuosly, updating
+# each object until the program is halted.
+# I recommend checking out
+# http://gameprogrammingpatterns.com/game-loop.html
+# to see how a game loop works. This website was
+# used as the resource for this engine.
 class LittleGame
-    attr_accessor   :canvas
-    attr_accessor   :tick
+    # @!attribute [r] canvas
+    #   @return [FXCanvas] is the canvas object to draw on.
+    attr_reader   :canvas
+    # @!attribute [r] tick
+    #   @return [Numerical] is the time since the last game loop.
+    attr_reader   :tick
+    # @!attribute [rw] scene
+    #   @return [Scene] is the current scene.
     attr_accessor   :scene
+    # @!attribute [rw] input
+    #   @return [LittleInput::Input] manages user input.
     attr_accessor   :input
-    #Creates the game and the variables needed
-    #to time the loop correctly.
+    
+    # Creates the game and the variables needed
+    # to time the loop correctly.
     def initialize
         @tick = 0
         @time = Time.now
@@ -174,6 +202,7 @@ class LittleGame
             x2: data.click_x, y2: data.click_y})
         end
       end
+      start_input if @canvas and @scene and @input
     end
     # Sets the new scene to be updated on the
     # next run of the loop.
@@ -182,14 +211,15 @@ class LittleGame
         @newscene = scene
         start_input if @canvas and @scene and @input
     end
+    # Connects the current scene to the input manager.
     def start_input
       if @scene
         @input.connect(@scene, @scene.input_map)
       end
     end
-    #This method is called to begin the loop.
-    #Notice that this has no looping structure.
-    #The 'loop' portion is actually in the GUI.
+    # This method is called to begin the loop.
+    # Notice that this has no looping structure.
+    # The 'loop' portion is actually in the GUI.
     def run
         #$FRAME.log(1, "Running.")
         return if not @canvas
@@ -202,8 +232,8 @@ class LittleGame
         @tick = (@time.to_f)-lasttick
         loop
     end
-    #The guts and glory of the game loop.
-    #This guy does all the heavy lifting.
+    # The guts and glory of the game loop.
+    # This guy does all the heavy lifting.
     def loop
         input
         while (@tick > $MS_PER_FRAME) do
@@ -214,26 +244,35 @@ class LittleGame
         draw(graphics, @tick)
         graphics.end
     end
-    #Process the input.
+    # Process the input.
     def input
-      #TODO this is where the input needs a check
+      while @input.execute
+        #as long as there is input to process
+        #keep calling execute on the input manager
+      end
     end
-    #Update the objects.
+    # Update the objects.
     def update
         @scene ? @scene.update : nil
     end
-    #Draw the objects.
+    # Draw the objects.
+    # @param graphics [FXDCWindow] is the graphics object with
+    #                              which to draw.
+    # @param tick [Numerical] is the milliseconds since the last
+    #                         game loop started.
     def draw (graphics, tick)
         graphics.foreground = @canvas.backColor
         graphics.fillRectangle(0, 0, @canvas.width, @canvas.height)
         @scene ? @scene.draw(graphics, tick) : nil
     end
 end
-#This is the program window that holds the canvas.
-#The canvas is where everything is drawn. The frame
-#also calls the run method periodically to keep the
-#game going. The framework used is from fxruby.
+# This is the program window that holds the canvas.
+# The canvas is where everything is drawn. The frame
+# also calls the run method periodically to keep the
+# game going. The framework used is from fxruby.
 class LittleFrame < FXMainWindow
+    # @!attribute [r] logger
+    #   @return [LittleLogger] 
     attr_reader :logger
     # Creates the window components and adds the game.
     # @param app [FXApp] is the application that will be running.
@@ -304,6 +343,13 @@ class LittleFrame < FXMainWindow
     # @param note [String] is the note to save to the log file.
     def logtofile(sender, method="", note="")
       @@logger.logtofile(sender, method, note) if @@logger
+    end
+    # Overwrite exiting so that the log file can be saved
+    # and any cleanup operations can be performed.
+    def on_close(sender, selector, event)
+      if $LOG
+        @@logger.save
+      end
     end
 end
 

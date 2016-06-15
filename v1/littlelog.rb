@@ -1,10 +1,12 @@
+# Save to file?
+$CREATE_LOG = false
 #The file to which statistics will be saved.
 $STATFILE = "log/stat201605.csv"
 #The list of statistics that will be saved.
 $STAT_LIST = [:date, :run, :runtime, :timeperrun]
-#Add log file and performance statistics
-#for debug mode.
-#@author Melinda Robertson
+# Add log file and performance statistics
+# for debug mode.
+# @author Melinda Robertson
 class LittleLogger
   attr_reader   :statlist
   attr_reader   :logfile
@@ -19,9 +21,11 @@ class LittleLogger
     sec = time.sec < 10 ? "0"+time.sec.to_s : time.sec
     strtime = "#{hour}#{min}#{sec}"
     #@startime = time.to_f
-    @logfile = "Log#{@date}#{strtime}.txt"
-    open(@logfile, 'w') do |f|
-      f.puts "#{time}"
+    if $CREATE_LOG
+      @logfile = "Log#{@date}#{strtime}.txt"
+      open(@logfile, 'w') do |f|
+        f.puts "#{time}"
+      end
     end
     @statlist = Hash.new
     $STAT_LIST.each {|i| @statlist[i] = 0}
@@ -32,7 +36,7 @@ class LittleLogger
   #                       made the call.
   #@param note [String] is the message to record in the log file.
   def logtofile(sender, method="", note="")
-    if sender
+    if sender and $CREATE_LOG
       time = Time.now
       hour = time.hour < 10 ? "0"+time.hour.to_s : time.hour
       min = time.min < 10 ? "0"+time.min.to_s : time.min
@@ -55,14 +59,14 @@ class LittleLogger
   #Sets the value of a statistic.
   #@param stat [Symbol] the statistic type.
   #@param value [Numerical] the value of the statistic.
-  def set(stat, value)
+  def set(stat, value = 0)
     @statlist = {} if not @statlist
     @statlist[stat] = value
   end
   #Increment the indicated numerical statistic.
   #@param stat [Symbol] the statictic type.
   def inc(stat)
-    set(stat) if not @statlist
+    start(stat) if not @statlist
     @statlist[stat] += 1
   end
   #Saves the list of statistics to a file.
