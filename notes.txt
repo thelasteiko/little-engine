@@ -91,8 +91,17 @@ require 'fox/keys'
   end
 end
 
-Ok, so it looks like the listeners for the canvas cannot be removed.
-Solution: Initialize required listeners for all scenes and interpret input
-  based on the scene and state it's called on.
-  Scene: menu vs. battle
-  State: walking vs. running
+http://stackoverflow.com/questions/522720/passing-a-method-as-a-parameter-in-ruby
+I can use this setup to pass code blocks for input:
+
+gaussian = Proc.new do |dist, *args|
+  sigma = args.first || 10.0
+  ...
+end
+
+def weightedknn(data, vec1, k = 5, weightf = gaussian)
+  ...
+  weight = weightf.call(dist)
+  ...
+end
+

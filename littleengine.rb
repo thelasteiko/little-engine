@@ -23,12 +23,13 @@ on how to run this demo.
 THIS IS THE DEBUG VERSION. It has an optional debug window to display
 error messages in.
 
-author:  Melinda Robertson
-version: 1.1
+@author  Melinda Robertson
+@version 1.3
 =end
 
 #for logging events in a file
 require_relative 'v1/littlelog'
+require_relative 'v3/littleinput'
 
 #I'm using fxruby for the GUI portion.
 require 'fox16'
@@ -40,9 +41,6 @@ $MS_PER_FRAME = 0.08
 $DEBUG = true
 #Set this to true to save statistics and comments to file.
 $LOG = false
-
-#All basic components of the engine are in this
-#module.
 
 #Game objects do all the heavy lifting in the game.
 #If there's something to see there's a game object
@@ -99,22 +97,6 @@ class Scene
       @inputqueue = []
       startinput
     end
-    # TODO I need to rethink this.
-    def startinput
-      
-    end
-    #Processes the input added to the inputqueue.
-    #Each tick serves only one input at a time.
-    #Optionally the input can be processed right
-    #after it is received. In that case, handle
-    #it in the listener itself.
-    def input
-      return nil if @inputqueue.empty?
-      #pop each command and process
-      current = @inputqueue.pop
-      #how you process the command is dependent
-      #on the structure of the game.
-    end
     #Calls update on all the groups.
     def update
       @groups.each{|key, value| value.update}
@@ -133,6 +115,9 @@ class Scene
         end
         @groups[group].push(value)
     end
+    def input_map
+      []
+    end
 end
 #Here are guts of the game engine. This has the
 #actual game loop which runs continuosly, updating
@@ -145,19 +130,62 @@ class LittleGame
     attr_accessor   :canvas
     attr_accessor   :tick
     attr_accessor   :scene
+    attr_accessor   :input
     #Creates the game and the variables needed
     #to time the loop correctly.
     def initialize
         @tick = 0
         @time = Time.now
+        @input = LittleInput::Input.new(self)
         @scene = nil
         @canvas = nil
         @newscene = nil
     end
-    #Sets the new scene to be updated on the
-    #next run of the loop.
+    # Creates listeners for the canvas when it is added.
+    # @param canvas [FXCanvas] is the canvas object for which input
+    #                          is required.
+    def canvas=(canvas)
+      @canvas = canvas
+      if @canvas and @input
+        @canvas.connect(SEL_KEYPRESS) do |sender, selector, data|
+          @input.add(data.code, []) #scene should already have needed data
+        end
+        @canvas.connect(SEL_LEFTBUTTONPRESS) do |sender, selector, data|
+          @input.add(LittleInput::MOUSE_LEFT,
+            {x: data.click_x, y: data.click_y})
+        end
+        @canvas.connect(SEL_RIGHTBUTTONPRESS) do |sender, selector, data|
+          @input.add(LittleInput::MOUSE_RIGHT,
+            {x: data.click_x, y: data.click_y})
+        end
+        @canvas.connect(SEL_MIDDLEBUTTONPRESS) do |sender, selector, data|
+          @input.add(LittleInput::MOUSE_MIDDLE,
+            {x: data.click_x, y: data.click_y})
+        end
+        @canvas.connect(SEL_MOUSEWHEEL) do |sender, selector, data|
+          @input.add(LittleInput::MOUSE_WHEEL,
+            {x: data.click_x, y: data.click_y,
+            type: data.type, state: data.state,
+            click_count: data.click_count})
+        end
+        @canvas.connect(SEL_MOTION) do |sender, selector, data|
+          @input.add(LittleInput::MOUSE_MOTION,
+            {x1: data.last_x, y1: data.last_y,
+            x2: data.click_x, y2: data.click_y})
+        end
+      end
+    end
+    # Sets the new scene to be updated on the
+    # next run of the loop.
+    # @param scene [Scene] is the new scene.
     def changescene (scene)
         @newscene = scene
+        start_input if @canvas and @scene and @input
+    end
+    def start_input
+      if @scene
+        @input.connect(@scene, @scene.input_map)
+      end
     end
     #This method is called to begin the loop.
     #Notice that this has no looping structure.
@@ -188,7 +216,7 @@ class LittleGame
     end
     #Process the input.
     def input
-        @scene ? @scene.input : nil
+      #TODO this is where the input needs a check
     end
     #Update the objects.
     def update
@@ -207,7 +235,11 @@ end
 #game going. The framework used is from fxruby.
 class LittleFrame < FXMainWindow
     attr_reader :logger
-    #Creates the window components and adds the game.
+    # Creates the window components and adds the game.
+    # @param app [FXApp] is the application that will be running.
+    # @param w [Fixnum] is the width in pixels.
+    # @param h [Fixnum] is the height in pixels.
+    # @param game [LittleGame] is the game engine.
     def initialize (app, w, h, game)
         myh = h
         if $DEBUG #make room for the log console
@@ -229,13 +261,13 @@ class LittleFrame < FXMainWindow
         game.canvas = @canvas
         @game = game
     end
-    #Creates the application, adds a timeout function
-    #that calls the run method periodically, shows
-    #the window and starts the game.
+    # Creates the application, adds a timeout function
+    # that calls the run method periodically, shows
+    # the window and starts the game.
     def start
         @app.create
         @app.addTimeout($MS_PER_FRAME * 1000.0, :repeat => true) do
-          @logger.inc(:run) if @logger
+          @@logger.inc(:run) if @@logger
           @game.run
             #Messages can be logged by using this command
             #anywhere in the running game.
@@ -244,18 +276,18 @@ class LittleFrame < FXMainWindow
         show(PLACEMENT_SCREEN)
         @app.run
     end
-    #Shows details of the frame and its objects.
-    #@return [String] representation of the application.
+    # Shows details of the frame and its objects.
+    # @return [String] representation of the application.
     def to_s
         str = ""
         str += @app.to_s
         str += "\n" + @game.to_s
         str += "\n" + @canvas.to_s
     end
-    #Logs a comment to the console.
-    #@param id [Numerical] is the error id if applicable.
-    #@param message [String] is the message to pint to the console.
-    #@param exit [true, false] is the optional parameter to signal
+    # Logs a comment to the console.
+    # @param id [Numerical] is the error id if applicable.
+    # @param message [String] is the message to pint to the console.
+    # @param exit [true, false] is the optional parameter to signal
     #                          the application to close.
     def log (id=0, message="test", exit=false)
       if @@console
@@ -266,6 +298,10 @@ class LittleFrame < FXMainWindow
         abort
       end
     end
+    # Adds a line to the log file.
+    # @param sender [Object] is the object that made the request.
+    # @param method [String] is the method name this was called from.
+    # @param note [String] is the note to save to the log file.
     def logtofile(sender, method="", note="")
       @@logger.logtofile(sender, method, note) if @@logger
     end
