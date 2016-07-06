@@ -246,6 +246,7 @@ class LittleGame
     # @param scene [Scene] is the new scene.
     def changescene (scene)
         @newscene = scene
+        start_input if @canvas and @scene and @input
     end
     # Connects the current scene to the input manager.
     def start_input
