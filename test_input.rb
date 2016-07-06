@@ -7,8 +7,8 @@ include Fox
 
 # Tests processing input using the LittleInput module.
 class Mover < GameObject
-  def initialize (game, x = 20, y = 20)
-    super(game)
+  def initialize (game, group, x = 20, y = 20)
+    super(game, group)
     @x = x
     @y = y
     @fillcolor = Fox.FXRGB(255,235,205)
@@ -39,7 +39,7 @@ include LittleInput
   def initialize (game)
     super
     @groups[:movement] = Group.new(self)
-    @mover = Mover.new(self, 50, 50)
+    @mover = Mover.new(game, self, 50, 50)
     push(:movement, @mover)
     @amount = 10
   end

@@ -36,8 +36,8 @@ class Component < GameObject
   # @param y [Numeric] is the y coordinate of the top left corner.
   # @param w [Numeric] is the width.
   # @param h [Numeric] is the height.
-  def initialize (group, parent=nil, x=0, y=0, w=0, h=0, default=true)
-    super(group)
+  def initialize (game, group, parent=nil, x=0, y=0, w=0, h=0, default=true)
+    super(game, group)
     @parent = parent
     @children = []
     constraint = Constraint.new(x,y,w,h)

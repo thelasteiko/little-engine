@@ -51,8 +51,9 @@ class GameObject
     attr_accessor :group
     # Creates the object.
     # @param group [Group] is the group this object belongs to.
-    def initialize (group)
-        @group = group
+    def initialize (game, group)
+      @game = game
+      @group = group
     end
     # Update variables (hint: position) here.
     def update
@@ -70,11 +71,13 @@ end
 # categories. This helps with layering when objects
 # have overlapping positions on the screen.
 class Group
+    attr_accessor :scene
     # Creates the group.
     # @param scene [Scene] is the scene this group belongs to.
-    def initialize (scene)
-        @entities = []
-        @scene = scene
+    def initialize (game, scene)
+      @game = game
+      @entities = []
+      @scene = scene
     end
     # Updates the objects in this group.
     def update
@@ -121,7 +124,6 @@ class Scene
     def initialize (game)
       @game = game
       @groups = Hash.new
-      @inputqueue = []
     end
     # Calls update on all the groups.
     def update
@@ -166,6 +168,9 @@ class Scene
         end
       end
       return false
+    end
+    def [](sym)
+      @groups[sym]
     end
     # The input map that relates input events to method names.
     # @return [Hash] of type [Numerical, Symbol] where events are

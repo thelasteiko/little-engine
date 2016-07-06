@@ -6,7 +6,7 @@ require_relative 'v2/littlemenu'
 include Fox
 
   class TestObject < GameObject
-    def initialize (group)
+    def initialize (game, group)
       super
       @x = 50
       @y = 50
@@ -44,7 +44,7 @@ include Fox
     def initialize (game)
       super
       @groups[:testgroup] = Group.new(self)
-      push(:testgroup, TestObject.new(:testgroup))
+      push(:testgroup, TestObject.new(game, :testgroup))
       c = Component.new(:menu, nil, 20, 20, 100, 50)
       c2 = Component.new(:menu, c, 0, 0, 35, 20)
       c.add(c2)
