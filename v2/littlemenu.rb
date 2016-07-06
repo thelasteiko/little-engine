@@ -41,10 +41,11 @@ class Component < GameObject
     @parent = parent
     @children = []
     constraint = Constraint.new(x,y,w,h)
-    #why did i do this?
+    #so that children can have a different theme
     start_default(parent) if default
   end
-  
+  # Creates the new object with the default shape.
+  # @param parent [Component] is the parent of the new object.
   def start_default(parent)
     if parent
       @shape = parent.shape.clone
@@ -60,9 +61,9 @@ class Component < GameObject
   # Sets the initial shape and theme to this object's
   # shape and theme if they have not been defined yet.
   # @param child [Component] is the component to add.
-  def add(child)
+  def add(child, default=true)
     @children.push(child)
-    safe_add_child(child, child.visible?)
+    safe_add_child(child, child.visible?, default)
   end
   
   # Alias for @see Component.add
@@ -171,14 +172,12 @@ class Component < GameObject
 private
   # Adds a child by updating the shape, theme and adding it to the layout.
   # @param child [Component] is the component to add.
-  # @param add_to_layout [TrueClass] says whether or not to add the component to the layout.
+  # @param add_to_layout [TrueClass] is true to add to the layout.
+  # @param adopt_theme [TrueClass] is true to adopt the shape of the parent.
   def safe_add_child(child, add_to_layout, adopt_theme)
     child.parent = self
-    if not child.shape
+    if not child.shape or adopt_theme
       child.shape = @shape.clone
-      #child.shape.theme = @shape.theme
-    end
-    if adopt_theme
       child.shape.theme = @shape.theme
     end
     @layout.add(child) if add_to_layout
@@ -202,23 +201,35 @@ module MenuType
         end
       end
     end
+    # Selects a child from the component's list of children.
+    # @param child [Component] is the component child to select.
     def select_child(child)
       if @children and @children.include?(child)
         select_index(@children.index(child))
       end
     end
+    # Deselects the current child.
     def deselect_child
       if @selected_child
         @selected_child.deselect
         @selected_child = nil
       end
     end
+    # Returns the current selection or nil.
+    # @return [Component] current selection or nil.
+    def selected_child
+      @selected_child |= nil
+    end
   end
   #The component is able to be selected by the user.
   module Select
+    # States if the component is currently selected.
+    # @return true if it is selected, false otherwise.
     def selected?
       @selected |= false
     end
+    # States if the component can be selected.
+    # @return true if it can be selected, false otherwise.
     def selectable?
       @selectable |= true
     end
@@ -227,6 +238,13 @@ module MenuType
     end
     def deselect
       @selected = false
+    end
+    
+    def disable_select
+      @selectable = false
+    end
+    def enable_select
+      @selectable = true
     end
   end
   

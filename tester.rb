@@ -5,10 +5,6 @@ require_relative 'littleengine'
 require_relative 'v2/littlemenu'
 include Fox
 
-# In order to use the debugger, these classes
-# must be wrapped in a module that includes LittleEngine
-#module MyGame
-  #include LittleEngine
   class TestObject < GameObject
     def initialize (group)
       super
@@ -63,7 +59,7 @@ include Fox
 if __FILE__ == $0
     app = FXApp.new('Little Game', 'Test')
     game = LittleGame.new
-    game.changescene(TestScene.new(game))
     $FRAME = LittleFrame.new(app, 400, 300, game)
+    game.changescene(TestScene.new(game))
     $FRAME.start
 end

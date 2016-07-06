@@ -181,11 +181,14 @@ module LittleShape
     # Determines if a point intersects with this shape.
     # @param x [Fixnum] is the x coordinate.
     # @param y [Fixnum] is the y coordinate.
+    # @return true if the point is inside, false otherwise.
     def inside?(x, y)
       @constraint.x < x and @constraint.x1 > x and @constraint.y < y and @constraint.y1 > y
     end
     
     # Creates a string representation of the object.
+    # @return [String] a string that shows information about the theme
+    #   and constraints.
     def to_s
       str = "Rectangle:\n"
       str += "\tConstraint: " + (@constraint ? @constraint.to_s : "*") + "\n"
