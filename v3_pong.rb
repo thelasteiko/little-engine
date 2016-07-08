@@ -4,6 +4,12 @@ require 'fox16'
 require_relative 'littleengine'
 include Fox
 
+# Demo game of basic functionality.
+# Use a bumper to bounce a ball up. If it falls past the bumper you lose.
+# @author Melinda Robertson
+# @version 3.1 6Jul16
+
+# The ball to keep airborne.
 class Ball < GameObject
   attr_accessor :x
   attr_accessor :y

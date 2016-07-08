@@ -56,6 +56,18 @@ class Constraint
     @x1 = @x+@w
     @x2 = @x+@w
   end
+  def set_xy(x, y)
+    @x = x
+    @y = y
+    @x1 = x+@w
+    @y1 = y+@h
+  end
+  def set_wh(w, h)
+    @w = w
+    @h = h
+    @x1 = @x+w
+    @y1 = @y+h
+  end
   # Returns a string representation of the object.
   def to_s
     str = "{x:" + @x.to_s + ",y:" + @y.to_s + ",x1:" + @x1.to_s + ",y1:" + @y1.to_s + ",w:"
@@ -136,18 +148,33 @@ end
 # The shape module holds classes that represent different
 # shapes.
 module LittleShape
-  class Rectangle
+  NORTH = 0
+  EAST = 1
+  SOUTH = 2
+  WEST = 3
+  class Shape
     attr_accessor :constraint #shape boundaries
     attr_accessor :theme      #color and style
-    
-    # Creates a rectangle object.
+    # Creates a shape object.
     # @param constraint [Constraint] lists the numerical size parameters.
     # @param theme [Theme] lists the color and style parameters.  
-    def initialize (constraint, theme)
-      @constraint = constraint
-      @theme = theme
+    def initialize (constraint=nil, theme=nil)
+      c = constraint
+      t = theme
+      if not c
+        c = Constraint.new
+      end
+      if not t
+        t = Theme.new
+      end
+      @constraint = c
+      @theme = t
     end
-    
+    def clone
+      Shape.new(@constraint.clone, @theme.clone)
+    end
+  end
+  class Rectangle < LittleShape::Shape
     # Draws the shape with a graphics object.
     # @param graphics [FXDCWindow] the display component on which
     #                              the shape will be drawn.
@@ -167,6 +194,8 @@ module LittleShape
     end
     
     # Creates a deep copy of the object.
+    # @return [LittleShape::Rectangle] a new rectangle object
+    #                                  based on the current object.
     def clone
       Rectangle.new(@constraint.clone, @theme.clone)
     end
@@ -195,5 +224,71 @@ module LittleShape
       str += "\tTheme: " + (@theme ? @theme.to_s : "*")
       return str
     end
+  end
+  class EqualTriangle < LittleShape::Shape
+  include LittleShape
+    def initialize (orientation=0, constraint=nil, theme=nil)
+      super(constraint, theme)
+      if orientation == LittleShape::NORTH or
+          orientation == LittleShape::SOUTH
+        @constraint.r = @constraint.w / 2
+        @constraint.h = @constraint.r * Math.sqrt(3)
+      elsif orientation == LittleShape::EAST or
+          orientation == LittleShape::WEST
+        @constraint.r = @constraint.h / 2
+        @constraint.w = @constraint.r * Math.sqrt(3)
+      end
+      @constraint.x1 += @constraint.x + @constraint.w
+      @constraint.y1 += @constraint.y + @constraint.h
+      @orientation = orientation
+    end
+    def draw (graphics, tick)
+      a = create_points
+      if @theme.fill_color
+        graphics.foreground = @theme.fill_color
+        graphics.fillPolygon(a)
+      end
+      if @theme.stroke_color
+        graphics.foreground = @theme.stroke_color
+        graphics.drawLines(a)
+      end
+    end
+    def create_points
+      array = []
+      x = @constraint.x
+      y = @constraint.y
+      w = @constraint.w
+      h = @constraint.h
+      r = @constraint.r
+      if @orientation == LittleShape::NORTH
+        array.push(FXPoint.new(x+r, y))
+        array.push(FXPoint.new(x,y+h))
+        array.push(FXPoint.new(x+w,y+h))
+      elsif @orientation == LittleShape::EAST
+        array.push(FXPoint.new(x, y))
+        array.push(FXPoint.new(x+w,y+r))
+        array.push(FXPoint.new(x,y+h))
+      elsif @orientation == LittleShape::SOUTH
+        array.push(FXPoint.new(x,y))
+        array.push(FXPoint.new(x+w,y))
+        array.push(FXPoint.new(x+r,y+h))
+      elsif @orientation == LittleShape::WEST
+        array.push(FXPoint.new(x,y+r))
+        array.push(FXPoint.new(x+w,y))
+        array.push(FXPoint.new(x+w,y+h))
+      end
+      return array
+    end
+    def inside?(x,y)
+      #y=mx
+      if @constraint.x < x and @constraint.x1 > x
+          and @constraint.y < y and @constraint.y1 > y
+        
+      end
+    end
+    def slope
+      @constraint.h / @constraint.r
+    end
+    
   end
 end
