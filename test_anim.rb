@@ -28,38 +28,21 @@ include Fox
       @x = 50
       @y = 50
       @anim = Animation.new("resource/mindyimport.png",
-          3, 32, 32, 1000)
-      @imagecreated = false
+          3, 32, 32, 0.3)
       @countdown = 100
     end
     def update
-      if not @image
-        create_buffer
-      end
-      if @image and @countdown > 0
-        @countdown -= 1
-      end
+      
     end
     def draw (graphics, tick)
-      if @image
-        if @countdown <= 0
-          @image.crop(32,32,32*2,32*2) #won't work
-        end
-        graphics.drawImage(@image,@x,@y)
-        if not @imagecreated
-          $FRAME.log(1, "W: " + @image.width.to_s + ", H: " + @image.height.to_s)
-          @imagecreated = true
-        end
+      image = @anim.loop_around (tick)
+      if image
+        #puts @anim.to_s
+        graphics.drawImage(image,@x,@y)
       end
     end
-    def create_buffer
-      @image = FXPNGImage.new($FRAME.getApp(), nil, IMAGE_KEEP|IMAGE_SHMI|IMAGE_SHMP)
-      return false if not @image
-      $FRAME.getApp().beginWaitCursor do
-        FXFileStream.open(@filename, FXStreamLoad) {|stream| @image.loadPixels(stream)}
-        @image.create
-      end
-      @image.crop(0,0,32,32)
+    def load (app)
+      @anim.load(app)
     end
   end
   class AnimScene < Scene
@@ -72,9 +55,8 @@ include Fox
 
 #This is a trial run to test that it's working.
 if __FILE__ == $0
-    app = FXApp.new('Little Game', 'Test')
+    $FRAME = LittleFrame.new(400, 300)
     game = LittleGame.new
-    $FRAME = LittleFrame.new(app, 400, 300, game)
     game.changescene(AnimScene.new(game))
-    $FRAME.start
+    $FRAME.start(game)
 end

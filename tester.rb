@@ -43,14 +43,7 @@ include Fox
   class TestScene < Scene
     def initialize (game)
       super
-      @groups[:testgroup] = Group.new(self)
       push(:testgroup, TestObject.new(game, :testgroup))
-      c = Component.new(:menu, nil, 20, 20, 100, 50)
-      c2 = Component.new(:menu, c, 0, 0, 35, 20)
-      c.add(c2)
-      c.add(Component.new(:menu, c, 0,0,10,5))
-      c.show
-      push(:menu, c)
     end
   end
 #end
@@ -58,8 +51,8 @@ include Fox
 #This is a trial run to test that it's working.
 if __FILE__ == $0
     app = FXApp.new('Little Game', 'Test')
+    $FRAME = LittleFrame.new(app, 400, 300)
     game = LittleGame.new
-    $FRAME = LittleFrame.new(app, 400, 300, game)
     game.changescene(TestScene.new(game))
-    $FRAME.start
+    $FRAME.start(game)
 end

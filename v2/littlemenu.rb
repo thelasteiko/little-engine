@@ -23,7 +23,7 @@ class Component < GameObject
   attr_reader   :children
   #adopt the theme from parent unless theme is defined
   attr_reader   :layout
-  attr_reader   :shape
+  attr_accessor   :shape
   attr_reader   :font
   attr_accessor :content #some value to display or store
   
@@ -42,11 +42,11 @@ class Component < GameObject
     @children = []
     constraint = Constraint.new(x,y,w,h)
     #so that children can have a different theme
-    start_default(parent) if default
+    start_default(parent, constraint) if default
   end
   # Creates the new object with the default shape.
   # @param parent [Component] is the parent of the new object.
-  def start_default(parent)
+  def start_default(parent, constraint)
     if parent
       @shape = parent.shape.clone
       @shape.theme = parent.shape.theme

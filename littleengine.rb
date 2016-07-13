@@ -49,11 +49,13 @@ $LOG = false
 #To use the game object, overwrite the functions.
 class GameObject
     attr_accessor :group
+    attr_accessor :remove
     # Creates the object.
     # @param group [Group] is the group this object belongs to.
     def initialize (game, group)
       @game = game
       @group = group
+      @remove = false
     end
     # Update variables (hint: position) here.
     def update
@@ -65,6 +67,8 @@ class GameObject
     # @param tick [Numerical] is the milliseconds since the last
     #                         game loop started.
     def draw (graphics, tick)
+    end
+    def load (app)
     end
 end
 # I use groups to separate game objects into
@@ -90,6 +94,9 @@ class Group
     #                         game loop started.
     def draw (graphics, tick)
         @entities.each {|i| i.draw(graphics, tick)}
+    end
+    def load (app)
+      @entities.each {|i| i.load(app)}
     end
     # Add a new object to this group.
     # @param value [GameObject] is the object to add.
@@ -134,10 +141,13 @@ class Scene
     # used, overwrite this.
     # @param graphics [FXDCWindow] is the graphics object with
     #                              which to draw.
-    # @param tick [Numerical] is the milliseconds since the last
+    # @param tick [Float] is the milliseconds since the last
     #                         game loop started.
     def draw (graphics, tick)
       @groups.each{|key, value| value.draw(graphics, tick)}
+    end
+    def load (app)
+      @groups.each {|key, value| value.load(app)}
     end
     # Adds a new game object to the indicated group.
     # If the group doesn't exist, it adds a new group.
@@ -145,7 +155,7 @@ class Scene
     # @param value [GameObject] is the object to add.
     def push (group, value)
         if (!@groups[group])
-            @groups[group] = Group.new(self)
+            @groups[group] = Group.new(@game, self)
         end
         value.group = @groups[group]
         @groups[group].push(value)
@@ -178,9 +188,6 @@ class Scene
     #                responses are symbols representing method names.
     def input_map
       {}
-    end
-    def load
-      #load content like pictures or fonts
     end
 end
 # Here are guts of the game engine. This has the
@@ -273,7 +280,7 @@ class LittleGame
             @scene = @newscene
             @newscene = nil
             start_input if @canvas and @input
-            @scene.load
+            @scene.load($FRAME.getApp())
         end
         lasttick = (@time.to_f)
         @time = Time.now
@@ -327,7 +334,8 @@ class LittleFrame < FXMainWindow
     # @param w [Fixnum] is the width in pixels.
     # @param h [Fixnum] is the height in pixels.
     # @param game [LittleGame] is the game engine.
-    def initialize (app, w, h, game)
+    def initialize (w, h)
+        app = FXApp.new('Little Game', 'Test')
         myh = h
         if $DEBUG #make room for the log console
           myh = (h*1.4)
@@ -345,25 +353,25 @@ class LittleFrame < FXMainWindow
         end
         @@logger = LittleLogger.new if $LOG
         @canvas.backColor = Fox.FXRGB(0, 0, 0)
-        game.canvas = @canvas
-        @game = game
     end
     # Creates the application, adds a timeout function
     # that calls the run method periodically, shows
     # the window and starts the game.
-    def start
-        @app.create
-        @app.addTimeout($MS_PER_FRAME * 1000.0, :repeat => true) do
-          if $LOG
-            @@logger.inc(:run)
-          end
-          @game.run
-            #Messages can be logged by using this command
-            #anywhere in the running game.
-            #$FRAME.log(0, "Game is running")
+    def start (game)
+      game.canvas = @canvas
+      @game = game
+      @app.create
+      @app.addTimeout($MS_PER_FRAME * 1000.0, :repeat => true) do
+        if $LOG
+          @@logger.inc(:run)
         end
-        show(PLACEMENT_SCREEN)
-        @app.run
+        @game.run
+        #Messages can be logged by using this command
+        #anywhere in the running game.
+        #$FRAME.log(0, "Game is running")
+      end
+      show(PLACEMENT_SCREEN)
+      @app.run
     end
     # Shows details of the frame and its objects.
     # @return [String] representation of the application.

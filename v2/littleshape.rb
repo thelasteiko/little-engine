@@ -283,9 +283,8 @@ module LittleShape
     end
     def inside?(x,y)
       #y=mx
-      if @constraint.x < x and @constraint.x1 > x
-          and @constraint.y < y and @constraint.y1 > y
-        return y >= slope * x and y <= -slope * x
+      if @constraint.x < x and @constraint.x1 > x and @constraint.y < y and @constraint.y1 > y
+        #return y >= slope * x and y <= -slope * x
       end
       return false
     end
