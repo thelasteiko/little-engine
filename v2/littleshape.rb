@@ -225,6 +225,8 @@ module LittleShape
       return str
     end
   end
+  #TODO this won't work if I want to rotate the triangle at all
+  #I need a more general solution for triangles
   class EqualTriangle < LittleShape::Shape
   include LittleShape
     def initialize (orientation=0, constraint=nil, theme=nil)
@@ -283,8 +285,9 @@ module LittleShape
       #y=mx
       if @constraint.x < x and @constraint.x1 > x
           and @constraint.y < y and @constraint.y1 > y
-        
+        return y >= slope * x and y <= -slope * x
       end
+      return false
     end
     def slope
       @constraint.h / @constraint.r

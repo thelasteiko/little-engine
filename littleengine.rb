@@ -179,6 +179,9 @@ class Scene
     def input_map
       {}
     end
+    def load
+      #load content like pictures or fonts
+    end
 end
 # Here are guts of the game engine. This has the
 # actual game loop which runs continuosly, updating
@@ -251,7 +254,6 @@ class LittleGame
     # @param scene [Scene] is the new scene.
     def changescene (scene)
         @newscene = scene
-        start_input if @canvas and @scene and @input
     end
     # Connects the current scene to the input manager.
     def start_input
@@ -270,7 +272,8 @@ class LittleGame
         if (@newscene)
             @scene = @newscene
             @newscene = nil
-            start_input if @canvas and @scene and @input
+            start_input if @canvas and @input
+            @scene.load
         end
         lasttick = (@time.to_f)
         @time = Time.now
