@@ -228,7 +228,8 @@ class LittleGame
       @canvas = canvas
       if @canvas and @input
         @canvas.connect(SEL_KEYPRESS) do |sender, selector, data|
-          @input.add(data.code, []) #scene should already have needed data
+          @input.add(data.code, {code: data.code,
+            state: data.state, type: data.type, time: data.time})
         end
         @canvas.connect(SEL_LEFTBUTTONPRESS) do |sender, selector, data|
           @input.add(LittleInput::MOUSE_LEFT,

@@ -144,9 +144,8 @@ class GameOver < Scene
 end
 
 if __FILE__ == $0
-  app = FXApp.new('Little Game', 'Test Input')
+  $FRAME = LittleFrame.new(400, 300)
   game = LittleGame.new
-  $FRAME = LittleFrame.new(app, 400, 300, game)
   game.changescene(Pong.new(game))
-  $FRAME.start
+  $FRAME.start (game)
 end

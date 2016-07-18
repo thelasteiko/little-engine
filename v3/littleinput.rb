@@ -47,7 +47,7 @@ module LittleInput
     # @return true if the command could be executed,
     #         false otherwise.
     def execute
-      #TODO need to check the API for this
+      #TODO use generic markers for key sets, such as number, letter, function
       return false if @queue.empty?
       command = @queue.slice!(0)
       #check if the scene is active

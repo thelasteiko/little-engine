@@ -50,8 +50,7 @@ include Fox
 
 #This is a trial run to test that it's working.
 if __FILE__ == $0
-    app = FXApp.new('Little Game', 'Test')
-    $FRAME = LittleFrame.new(app, 400, 300)
+    $FRAME = LittleFrame.new(400, 300)
     game = LittleGame.new
     game.changescene(TestScene.new(game))
     $FRAME.start(game)

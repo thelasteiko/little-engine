@@ -23,26 +23,39 @@ require_relative 'v3/littleanim'
 include Fox
 
   class TestObject < GameObject
+    attr_accessor :mode
     def initialize (game,group)
       super(game,group)
       @x = 50
       @y = 50
-      @anim = Animation.new("resource/mindyimport.png",
+      walk_down = Animation.new("resource/mindyimport.png",
           3, 32, 32, 0.3)
+      walk_right = Animation.new("resource/mindyimport.png",
+          3, 32, 32, 0.3, 0, 64, 0, 32)
+      walk_left = Animation.new("resource/mindyimport.png",
+          3, 32, 32, 0.3, 0, 32, 0, 32)
+      walk_up = Animation.new("resource/mindyimport.png",
+          3, 32, 32, 0.3, 0, 96, 0, 32)
+      @anims = [walk_down,walk_left,walk_up,walk_right]
       @countdown = 100
+      @oldmode = 0
+      @mode = 0
     end
     def update
-      
+      if @oldmode != @mode
+        @anims[@oldmode].reset
+        @oldmode = @mode
+      end
     end
     def draw (graphics, tick)
-      image = @anim.loop_around (tick)
+      image = @anims[@mode].loop_around(tick)
       if image
         #puts @anim.to_s
         graphics.drawImage(image,@x,@y)
       end
     end
     def load (app)
-      @anim.load(app)
+      @anims.each{|i| i.load(app)}
     end
   end
   class AnimScene < Scene
@@ -50,6 +63,19 @@ include Fox
       super
       @groups[:testgroup] = Group.new(game, self)
       push(:testgroup, TestObject.new(game,:testgroup))
+      @time = 0
+    end
+    def input_map
+      #left,up,right,down
+      {65361 => :move, 65362 => :move,
+        65363 => :move, 65364 => :move,}
+    end
+    def move (args)
+      i = args[:code] % 4
+        $FRAME.log(1, "t: " + (args[:time]-@time).to_s)
+      @time = args[:time]
+      mover = @groups[:testgroup][0]
+      mover.mode = i
     end
   end
 

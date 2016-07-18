@@ -13,6 +13,8 @@ class Animation
   # @param  height    [Fixnum]  is the height of each frame in pixels.
   # @param  duration  [Float]   is how long the animation should last before
   #                             ending or looping.
+  # @param  still_frame [Fixnum] is the number (starting at 0) for the frame
+  #                              to show when the animation is paused.
   # @param  x         [Fixnum]  is where the starting x for the animation
   #                             is on the spritesheet.
   # @param  y         [Fixnum]  is where the starting y for the animation
@@ -21,7 +23,7 @@ class Animation
   #                             smaller than the width of the image.
   # @param iheight    [Fixnum]  is the total height of the frames if it is
   #                             smaller than the height of the image.
-  def initialize (filename, frames, width, height, duration,
+  def initialize (filename, frames, width, height, duration, still_frame = -1
       x=0, y=0, iwidth=0, iheight=0)
     @filename = filename
     @frames = frames
@@ -38,12 +40,13 @@ class Animation
     @elapsedtime = 0.0
     @frametime = 0.0
     @reverse = false
+    @still_frame = still_frame
   end
   # Loads the image data into the buffer.
   # @param app  [FXApp] is the application that will be using
   #                     this animation object.
   def load (app)
-    y = 0
+    y = @y
     for i in 0...@frames
       @images[i] = FXPNGImage.new(app, nil, IMAGE_KEEP|IMAGE_SHMI|IMAGE_SHMP)
       app.beginWaitCursor do
@@ -153,6 +156,12 @@ class Animation
     end
     @frametime = 0.0
     return @images[@current]
+  end
+  def still
+    if @still_frame >= 0
+      return @images[@still_frame]
+    end
+    return false
   end
   def to_s
     "{i:" + @current.to_s + ",R:" + @reverse.to_s + ",et:" + @elapsedtime.to_s +

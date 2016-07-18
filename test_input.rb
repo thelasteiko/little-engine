@@ -38,15 +38,13 @@ class InputTestScene < Scene
 include LittleInput
   def initialize (game)
     super
-    @groups[:movement] = Group.new(self)
+    @groups[:movement] = Group.new(game,self)
     @mover = Mover.new(game, self, 50, 50)
     push(:movement, @mover)
     @amount = 10
   end
   def input_map
-    {0xFEE0 => :left, 0xFEE1 => :right,
-      0xFEE2 => :up, 0xFEE3 => :down,
-      65363 => :right, 65361 => :left,
+    {65363 => :right, 65361 => :left,
       65362 => :up, 65364 => :down,
       LittleInput::MOUSE_LEFT => :click,
       LittleInput::MOUSE_MOTION => :motion}
@@ -72,9 +70,8 @@ include LittleInput
 end
 
 if __FILE__ == $0
-  app = FXApp.new('Little Game', 'Test Input')
+  $FRAME = LittleFrame.new(400, 300)
   game = LittleGame.new
-  $FRAME = LittleFrame.new(app, 400, 300, game)
   game.changescene(InputTestScene.new(game))
-  $FRAME.start
+  $FRAME.start(game)
 end
