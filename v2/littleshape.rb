@@ -4,6 +4,9 @@ a shape on the canvas. The shape is part of a component that
 can have child components all with their own shape.
 =end
 
+#TODO figure out a better way to do this...
+
+  
 # Defines bounds for a shape.
 # @author Melinda Robertson
 # @version 20160606
@@ -17,12 +20,13 @@ class Constraint
   attr_accessor :r   #radius
   attr_accessor :xc  #center x
   attr_accessor :yc  #center y
+  attr_accessor :fit #whether the object can grow and shrink
   # Creates a constraint object.
   # @param x [Fixnum] is the top left x coordinate.
   # @param y [Fixnum] is the top left y coordinate.
   # @param w [Fixnum] is the width.
   # @param h [Fixnum] is the height.
-  def initialize (x=0, y=0, w=0, h=0)
+  def initialize (x=0, y=0, w=0, h=0, fit=false)
     @x = x
     @y = y
     @w = w
@@ -38,10 +42,11 @@ class Constraint
     end
     @x1 = x+w
     @y1 = y+h
+    @fit = fit
   end
   # Creates a deep copy of the object.
   def clone
-    c = Constraint.new(@x,@y,@w,@h)
+    c = Constraint.new(@x,@y,@w,@h,@fit)
     return c
   end
   # Sets the x and y values and re-calculates derived values.
@@ -226,7 +231,7 @@ module LittleShape
     end
   end
   #TODO this won't work if I want to rotate the triangle at all
-  #I need a more general solution for triangles
+  #I need a more general solution for triangles :P
   class EqualTriangle < LittleShape::Shape
   include LittleShape
     def initialize (orientation=0, constraint=nil, theme=nil)

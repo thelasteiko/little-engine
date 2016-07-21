@@ -233,26 +233,26 @@ class LittleGame
         end
         @canvas.connect(SEL_LEFTBUTTONPRESS) do |sender, selector, data|
           @input.add(LittleInput::MOUSE_LEFT,
-            {x: data.click_x, y: data.click_y})
+            {x: data.click_x, y: data.click_y, time: data.time})
         end
         @canvas.connect(SEL_RIGHTBUTTONPRESS) do |sender, selector, data|
           @input.add(LittleInput::MOUSE_RIGHT,
-            {x: data.click_x, y: data.click_y})
+            {x: data.click_x, y: data.click_y, time: data.time})
         end
         @canvas.connect(SEL_MIDDLEBUTTONPRESS) do |sender, selector, data|
           @input.add(LittleInput::MOUSE_MIDDLE,
-            {x: data.click_x, y: data.click_y})
+            {x: data.click_x, y: data.click_y, time: data.time})
         end
         @canvas.connect(SEL_MOUSEWHEEL) do |sender, selector, data|
           @input.add(LittleInput::MOUSE_WHEEL,
             {x: data.click_x, y: data.click_y,
             type: data.type, state: data.state,
-            click_count: data.click_count})
+            click_count: data.click_count, time: data.time})
         end
         @canvas.connect(SEL_MOTION) do |sender, selector, data|
           @input.add(LittleInput::MOUSE_MOTION,
             {x1: data.last_x, y1: data.last_y,
-            x2: data.click_x, y2: data.click_y})
+            x2: data.click_x, y2: data.click_y, time: data.time})
         end
       end
       start_input if @canvas and @scene and @input

@@ -23,8 +23,8 @@ class Animation
   #                             smaller than the width of the image.
   # @param iheight    [Fixnum]  is the total height of the frames if it is
   #                             smaller than the height of the image.
-  def initialize (filename, frames, width, height, duration, still_frame = -1
-      x=0, y=0, iwidth=0, iheight=0)
+  def initialize (filename, frames, width, height, duration,
+      x=0, y=0, iwidth=0, iheight=0, still_frame = -1)
     @filename = filename
     @frames = frames
     @width = width
@@ -157,11 +157,16 @@ class Animation
     @frametime = 0.0
     return @images[@current]
   end
-  def still
+  # Pauses the animation or shows a designated still frame.
+  # @param  tick  [Float] is the milliseconds since the last time
+  #                       the game loop ran.
+  # @return [FXPNGImage] the current image or the still frame.
+  def pause (tick)
     if @still_frame >= 0
       return @images[@still_frame]
     end
-    return false
+    @frametime += tick
+    return @images[@current]
   end
   def to_s
     "{i:" + @current.to_s + ",R:" + @reverse.to_s + ",et:" + @elapsedtime.to_s +

@@ -1,7 +1,9 @@
 #!/usr/bin/env ruby
 
 require 'fox16'
+require 'fox16/keys'
 include Fox
+
 # Namespace for input functionality.
 module LittleInput
   # Markers for the command.
@@ -15,6 +17,14 @@ module LittleInput
   MOUSE_WHEEL = 2
   MOUSE_MOTION = 3
   
+  KEYSET_OTHER = 8
+  KEYSET_NUMERICAL = 5
+  KEYSET_ALPHA = 6
+  KEYSET_FUNCTION = 7
+  
+  #treat consequetive commands as being held down
+  #if the time between them is less than the cutoff
+  TIMER_CUTOFF = 600
   # Helper class for handling input. The scene should be
   # the current scene.
   class Input
@@ -24,6 +34,7 @@ module LittleInput
     def initialize(game)
       @queue = Array.new
       @game = game
+      @last_command = nil
     end
     # Connect a differenct scene so that it's methods
     # get called during user input.
@@ -52,7 +63,7 @@ module LittleInput
       command = @queue.slice!(0)
       #check if the scene is active
       if @scene == command[LittleInput::SCENE]
-        #access the appropriate method using send
+        #access the appropriate method using call
         sym = @mapping[command[LittleInput::CODE]]
         if sym
           #as a note, all methods using this must take arguments
@@ -60,6 +71,28 @@ module LittleInput
           #@scene.send(sym, command[LittleInput::ARGS])
           @scene.method(sym).call(command[LittleInput::ARGS])
           return true
+        end
+        if command[LittleInput::CODE] > LittleInput::MOUSE_MIDDLE
+          code = LittleInput::KEYSET_OTHER
+          if (command[LittleInput::CODE] >= KEY_A and
+              command[LittleInput::CODE] <= KEY_Z) or
+              (command[LittleInput::CODE] >= KEY_a and
+              command[LittleInput::CODE] <= KEY_z)
+            code = LittleInput::KEYSET_ALPHA
+          elsif (command[LittleInput::CODE] >= KEY_0 and
+              command[LittleInput::CODE] <= KEY_1)
+            code = LittleInput::KEYSET_NUMERICAL
+          elsif command[LittleInput::CODE] >= KEY_F1 and
+              command[LittleInput::CODE] <= KEY_R15
+            code = LittleInput::KEYSET_FUNCTION
+          end
+          sym = @mapping[code]
+          if sym
+            #as a note, all methods using this must take arguments
+            #for this not to throw errors
+            @scene.method(sym).call(command[LittleInput::ARGS])
+            return true
+          end
         end
       end
       #if the scene is not active or does not have a

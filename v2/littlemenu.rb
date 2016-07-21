@@ -36,25 +36,34 @@ class Component < GameObject
   # @param y [Numeric] is the y coordinate of the top left corner.
   # @param w [Numeric] is the width.
   # @param h [Numeric] is the height.
-  def initialize (game, group, parent=nil, x=0, y=0, w=0, h=0, default=true)
+  def initialize (game, group, shape=nil, layout=nil, parent=nil)
     super(game, group)
     @parent = parent
     @children = []
-    constraint = Constraint.new(x,y,w,h)
     #so that children can have a different theme
-    start_default(parent, constraint) if default
+    if not @shape or not @layout
+      start_default(parent,shape,layout)
+    else
+      @shape = shape
+      @layout = layout
+    end
   end
   # Creates the new object with the default shape.
   # @param parent [Component] is the parent of the new object.
-  def start_default(parent, constraint)
+  def start_default(parent,shape,layout)
+    constraint = Constraint.new
     if parent
       @shape = parent.shape.clone
       @shape.theme = parent.shape.theme
       @shape.constraint = constraint
     else
-      @shape = LittleShape::Rectangle.new(constraint, Theme.new)
+      if not shape
+        @shape = LittleShape::Rectangle.new(constraint, Theme.new)
+      end
     end
-    @layout = LittleLayout::HorizontalFloat.new(@shape.constraint)
+    if not layout
+      @layout = LittleLayout::HorizontalFloat.new(@shape)
+    end
   end
   
   # Adds a component as a child.
@@ -253,10 +262,14 @@ module MenuType
       @draggable |= true
     end
   end
-  #Scrollable requires a scroll bar.
   module Scroll
     def scrollable?
       @scrollable |= true
+    end
+  end
+  module Expand
+    def expandable?
+      @expandable |= true
     end
   end
 end

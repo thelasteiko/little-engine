@@ -9,9 +9,10 @@ module LittleLayout
   
   class HorizontalFloat
     attr_accessor :pad
-    def initialize (constraint, pad=10)
+    def initialize (shape, pad=10)
       @pad = pad
-      reset_constraint(constraint)
+      @shape = shape
+      reset_constraint(shape.constraint)
     end
     # Inserts a new component into the layout.
     # @param child [Component] is the component to add.
@@ -36,6 +37,17 @@ module LittleLayout
     def canAdd?(child)
       cond = child.shape.constraint.w < (@add_constraint.x1 - @add_constraint.x)
       cond2 = child.shape.constraint.h < (@add_constraint.y1 - @add_constraint.y)
+      if not (cond and cond2)
+        if @add_constraint.fit
+          #change either the width or height
+          #let's do this based on the layout
+          #here we'll have the h grow bc else everything would
+          #have to be re-added
+          @shape.constraint.h += child.shape.constraint.h + @pad
+          @add_constraint.h = @shape.constraint.h
+          return true
+        end
+      end
       return (cond and cond2)
     end
     
@@ -69,4 +81,5 @@ module LittleLayout
     @add_width = 0
   end
 
+  class
 end

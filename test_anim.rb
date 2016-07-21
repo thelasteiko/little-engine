@@ -18,6 +18,7 @@ Strategy:
 #!/usr/bin/env ruby
 
 require 'fox16'
+require 'fox16/keys'
 require_relative 'littleengine'
 require_relative 'v3/littleanim'
 include Fox
@@ -67,8 +68,8 @@ include Fox
     end
     def input_map
       #left,up,right,down
-      {65361 => :move, 65362 => :move,
-        65363 => :move, 65364 => :move,}
+      {KEY_Left => :move, KEY_Up => :move,
+        KEY_Right => :move, KEY_Down => :move,}
     end
     def move (args)
       i = args[:code] % 4
