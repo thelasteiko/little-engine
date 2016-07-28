@@ -29,7 +29,7 @@ error messages in.
 
 #for logging events in a file
 require_relative 'v1/littlelog'
-require_relative 'v3/littleinput'
+require_relative 'v2/littleinput'
 
 #I'm using fxruby for the GUI portion.
 require 'fox16'
@@ -229,7 +229,11 @@ class LittleGame
       if @canvas and @input
         @canvas.connect(SEL_KEYPRESS) do |sender, selector, data|
           @input.add(data.code, {code: data.code,
-            state: data.state, type: data.type, time: data.time})
+            state: LittleInput::PRESS, time: data.time})
+        end
+        @canvas.connect(SEL_KEYRELEASE) do |sender, selector, data|
+          @input.add(data.code, {code: data.code,
+            state: LittleInput::RELEASE, time: data.time})
         end
         @canvas.connect(SEL_LEFTBUTTONPRESS) do |sender, selector, data|
           @input.add(LittleInput::MOUSE_LEFT,

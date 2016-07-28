@@ -21,8 +21,8 @@ Needs:
 require 'fox16'
 require 'fox16/keys'
 require_relative 'littleengine'
-require_relative 'v3/littleanim'
-require_relative 'v2/littlemenu'
+require_relative 'v2/littleanim'
+require_relative 'v3/littlemenu'
 include Fox
 
 class LogoBox < Component

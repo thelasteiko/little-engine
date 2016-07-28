@@ -6,47 +6,49 @@ include Fox
 # Loads a spritesheet into a series of images and manages
 # the progression for playback.
 class Animation
-  # Creates an Animation object.
+  # Creates an Animation object. The last argument are optional variables
+  # that can be passed in.
   # @param  filename  [String]  is the filename of the spritesheet.
   # @param  frames    [Fixnum]  is the number of frames in the spritesheet.
   # @param  width     [Fixnum]  is the width of each frame in pixels.
   # @param  height    [Fixnum]  is the height of each frame in pixels.
   # @param  duration  [Float]   is how long the animation should last before
   #                             ending or looping.
+  # @param  options   [Hash]    A list of optional arguments listed below.
   # @param  still_frame [Fixnum] is the number (starting at 0) for the frame
   #                              to show when the animation is paused.
   # @param  x         [Fixnum]  is where the starting x for the animation
   #                             is on the spritesheet.
   # @param  y         [Fixnum]  is where the starting y for the animation
   #                             is on the spritesheet.
-  # @param iwidth     [Fixnum]  is the total width of the frames if it is
+  # @param image_width [Fixnum]  is the total width of the frames if it is
   #                             smaller than the width of the image.
-  # @param iheight    [Fixnum]  is the total height of the frames if it is
+  # @param image_height [Fixnum]  is the total height of the frames if it is
   #                             smaller than the height of the image.
-  def initialize (filename, frames, width, height, duration,
-      x=0, y=0, iwidth=0, iheight=0, still_frame = -1)
+  def initialize (filename, frames, width, height, duration, options = {})
+    #x=0, y=0, iwidth=0, iheight=0, still_frame = -1
     @filename = filename
     @frames = frames
     @width = width
     @height = height
     @duration = duration
-    @x = x
-    @y = y
-    @iw = iwidth
-    @ih = iheight
+    @x = options[:x]
+    @y = options[:y]
+    @iw = options[:image_width]
+    @ih = options[:image_height]
     @ms_per_frame = duration / frames
     @images = []
     @current = 0
     @elapsedtime = 0.0
     @frametime = 0.0
     @reverse = false
-    @still_frame = still_frame
+    @still_frame = options[:still_frame]
   end
   # Loads the image data into the buffer.
   # @param app  [FXApp] is the application that will be using
   #                     this animation object.
   def load (app)
-    y = @y
+    y = @y ? @y : 0
     for i in 0...@frames
       @images[i] = FXPNGImage.new(app, nil, IMAGE_KEEP|IMAGE_SHMI|IMAGE_SHMP)
       app.beginWaitCursor do
@@ -55,14 +57,15 @@ class Animation
           @images[i].create
         end
       end
-      if @iw == 0
+      if not @iw
         @iw = @images[i].width
       end
-      if @ih == 0
+      if not @ih
         @ih = @images[i].height
       end
       #x,y,w,h
-      x = @width*i % @iw
+      x = @x ? @x : 0
+      x += @width*i % @iw
       y = (x == 0 && i > 0) ? y+@height : y
       w = @width
       h = @height
@@ -162,7 +165,7 @@ class Animation
   #                       the game loop ran.
   # @return [FXPNGImage] the current image or the still frame.
   def pause (tick)
-    if @still_frame >= 0
+    if @still_frame
       return @images[@still_frame]
     end
     @frametime += tick

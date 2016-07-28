@@ -20,40 +20,61 @@ Strategy:
 require 'fox16'
 require 'fox16/keys'
 require_relative 'littleengine'
-require_relative 'v3/littleanim'
+require_relative 'v2/littleanim'
 include Fox
 
   class TestObject < GameObject
     attr_accessor :mode
+    attr_accessor :state
     def initialize (game,group)
       super(game,group)
       @x = 50
       @y = 50
+      @speed = 0.4
       walk_down = Animation.new("resource/mindyimport.png",
-          3, 32, 32, 0.3)
+          3, 32, 32, @speed, still_frame: 1)
       walk_right = Animation.new("resource/mindyimport.png",
-          3, 32, 32, 0.3, 0, 64, 0, 32)
+          3, 32, 32, @speed, y: 64, image_height: 32, still_frame: 1)
       walk_left = Animation.new("resource/mindyimport.png",
-          3, 32, 32, 0.3, 0, 32, 0, 32)
+          3, 32, 32, @speed, y: 32, image_height: 32, still_frame: 1)
       walk_up = Animation.new("resource/mindyimport.png",
-          3, 32, 32, 0.3, 0, 96, 0, 32)
+          3, 32, 32, @speed, y: 96, image_height: 32, still_frame: 1)
       @anims = [walk_down,walk_left,walk_up,walk_right]
-      @countdown = 100
+      #@countdown = 100
       @oldmode = 0
       @mode = 0
+      @state = LittleInput::RELEASE
     end
     def update
       if @oldmode != @mode
         @anims[@oldmode].reset
         @oldmode = @mode
+      elsif @state == LittleInput::PRESS
+        if @mode == 0
+          @y += @speed
+        elsif @mode == 1
+          @x -= @speed
+        elsif @mode == 2
+          @y -= @speed
+        elsif @mode == 3
+          @x += @speed
+        end
       end
     end
     def draw (graphics, tick)
-      image = @anims[@mode].loop_around(tick)
+      image = nil
+      if @state == LittleInput::PRESS
+        image = @anims[@mode].loop_around(tick)
+      elsif @state == LittleInput::RELEASE
+        image = @anims[@mode].pause(tick)
+      end
       if image
         #puts @anim.to_s
         graphics.drawImage(image,@x,@y)
       end
+    end
+    def reset
+      @anims[@mode].reset
     end
     def load (app)
       @anims.each{|i| i.load(app)}
@@ -73,10 +94,11 @@ include Fox
     end
     def move (args)
       i = args[:code] % 4
-        $FRAME.log(1, "t: " + (args[:time]-@time).to_s)
-      @time = args[:time]
+      #  $FRAME.log(1, "t: " + (args[:time]-@time).to_s)
+      #@time = args[:time]
       mover = @groups[:testgroup][0]
       mover.mode = i
+      mover.state = args[:state]
     end
   end
 

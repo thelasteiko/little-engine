@@ -5,6 +5,8 @@ require 'fox16/keys'
 include Fox
 
 # Namespace for input functionality.
+# Keyboard keys start at 0x0020 so custom codes
+# can be created up to 20.
 module LittleInput
   # Markers for the command.
   SCENE = 0
@@ -16,11 +18,14 @@ module LittleInput
   MOUSE_MIDDLE = 4
   MOUSE_WHEEL = 2
   MOUSE_MOTION = 3
-  
+  # Markers for key type
   KEYSET_OTHER = 8
   KEYSET_NUMERICAL = 5
   KEYSET_ALPHA = 6
   KEYSET_FUNCTION = 7
+  
+  PRESS = 9
+  RELEASE = 10
   
   #treat consequetive commands as being held down
   #if the time between them is less than the cutoff
