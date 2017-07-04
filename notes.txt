@@ -105,3 +105,20 @@ def weightedknn(data, vec1, k = 5, weightf = gaussian)
   ...
 end
 
+what i need to do is sort out how things move
+in grid, flat x,y with different animations according to direction
+what types of games?
+  topdown
+  grid based
+  2d scroller
+  flying
+  shooter
+  
+basically all need different animations for each cardinal direction
+code % 4 will give me direction
+S:0
+W:1
+N:2
+E:3
+
+leave @ 6:30

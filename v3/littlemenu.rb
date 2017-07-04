@@ -1,13 +1,11 @@
 =begin
 Experiments for a menu system.
 
-Let's start simple.
-What does a menu need?
-  container
-  children
-  theme
-  layout
-  location/constraints
+Component
+ ->layout
+ ->shape
+  ->theme
+  ->constraint
 =end
 
 require_relative 'littleshape'
@@ -169,7 +167,9 @@ class Component < GameObject
     @children.each {|i| i.hide}
     @isVisible = false
   end
-  
+  def contains?(x,y)
+    return @shape.contains?(x,y)
+  end
   def to_s
     str = "Parent: " + (@parent ? "T" : "F") + "\n"
     str += "Children: " + (@children ? count.to_s : "0") + "\n"

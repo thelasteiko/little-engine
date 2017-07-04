@@ -7,7 +7,7 @@ include Fox
 # Demo game of basic functionality.
 # Use a bumper to bounce a ball up. If it falls past the bumper you lose.
 # @author Melinda Robertson
-# @version 3.1 6Jul16
+# @version 2.2 20170124
 
 # The ball to keep airborne.
 class Ball < GameObject
@@ -20,7 +20,7 @@ class Ball < GameObject
     @y = y
     @r = r
     @fillcolor = Fox.FXRGB(255,235,205)
-    @speed = 5.0
+    @speed = 2.0
     @dx = 1.0
     @dy = 1.0
   end
@@ -29,7 +29,7 @@ class Ball < GameObject
     graphics.foreground = @fillcolor
     graphics.fillCircle(@x,@y,@r)
   end
-  def update
+  def update(params={})
     cw = @game.canvas.width
     ch = @game.canvas.height
     if @x <= 0 or @x >= cw
@@ -60,8 +60,8 @@ class Bumper < GameObject
     graphics.foreground = @fillcolor
     graphics.fillRectangle(@x,@y,100,20)
   end
-  def update
-    ball = @group.scene[:ball][0]
+  def update(params={})
+    ball = @group.scene.groups[:ball][0]
     if ball.y > @y
       @group.scene.game_over = true
       return
@@ -95,7 +95,7 @@ class GameOverText < GameObject
     @text = "Game Over"
     @fillcolor = Fox.FXRGB(255,235,205)
   end
-  def update
+  def update (params={})
     if not @font
       @font = FXFont.new($FRAME.getApp(), "times", 12, FONTWEIGHT_BOLD)
       @font.create
@@ -112,18 +112,18 @@ end
 
 class Pong < Scene
   attr_accessor :game_over
-  def initialize (game)
+  def initialize (game, params={})
     super
     @groups[:user] = Group.new(game, self)
     @groups[:ball] = Group.new(game, self)
-    push(:user, Bumper.new(game, @groups[:user], 20, 280))
-    push(:ball, Ball.new(game, @groups[:ball], 20, 20))
+    push(Bumper.new(game, @groups[:user], 20, 280),:user)
+    push(Ball.new(game, @groups[:ball], 20, 20), :ball)
     @game_over = false
   end
   def input_map
     {LittleInput::MOUSE_MOTION => :motion}
   end
-  def update
+  def update (params={})
     super
     if @game_over
       @game.changescene(GameOver.new(@game))
@@ -136,16 +136,15 @@ class Pong < Scene
 end
 
 class GameOver < Scene
-  def initialize (game)
+  def initialize (game, params={})
     super
     @groups[:text] = Group.new(game, self)
-    push(:text, GameOverText.new(game, @groups[:text]))
+    push(GameOverText.new(game, @groups[:text]),:text)
   end
 end
 
 if __FILE__ == $0
   $FRAME = LittleFrame.new(400, 300)
-  game = LittleGame.new
-  game.changescene(Pong.new(game))
+  game = LittleGame.new(Pong)
   $FRAME.start (game)
 end

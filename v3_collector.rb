@@ -20,7 +20,7 @@ Strategy:
 require_relative 'littleengine'
 require_relative 'v3/littleanim'
 
-  class TestObject < GameObject
+  class Player < GameObject
     attr_accessor :mode
     attr_accessor :state
     def initialize (game,group)
@@ -98,11 +98,11 @@ require_relative 'v3/littleanim'
   end
 =end
 
-  class AnimScene < Scene
+  class MainScene < Scene
     def initialize (game,params={})
       super
       @groups[:testgroup] = Group.new(game, self)
-      push(TestObject.new(game,:testgroup),:testgroup)
+      push(Player.new(game,:testgroup),:testgroup)
       offset = 5
       for i in 0...13
         push(HorizontalLineObject.new(game,:lines,i*32+offset),:lines)

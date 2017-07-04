@@ -104,15 +104,15 @@ class Theme
   
   #Creates the default theme.
   def initialize
-    @stroke_color = Fox.FXRGB(0,0,0)
-    @fill_color = Fox.FXRGB(255,255,255)
-    @highlight_color = Fox.FXRGB(55,55,55)
+    @stroke_color = nil #Fox.FXRGB(0,0,0)
+    @fill_color = nil #Fox.FXRGB(255,255,255)
+    @highlight_color = nil #Fox.FXRGB(55,55,55)
     @border_style = "solid"
     @border_size = 2
     #@font = FXFont.new(getApp(), "times", 36, FONTWEIGHT_NORMAL)
     @font_type = "times"
     @font_size = 12
-    @font_color = Fox.FXRGB(0,0,0)
+    @font_color = nil #Fox.FXRGB(0,0,0)
     @font_weight = FONTWEIGHT_NORMAL
     @corner_style = "sharp"
   end
@@ -216,8 +216,8 @@ module LittleShape
     # @param x [Fixnum] is the x coordinate.
     # @param y [Fixnum] is the y coordinate.
     # @return true if the point is inside, false otherwise.
-    def inside?(x, y)
-      @constraint.x < x and @constraint.x1 > x and @constraint.y < y and @constraint.y1 > y
+    def contains?(x, y)
+      @constraint.x <= x and @constraint.x1 >= x and @constraint.y <= y and @constraint.y1 >= y
     end
     
     # Creates a string representation of the object.

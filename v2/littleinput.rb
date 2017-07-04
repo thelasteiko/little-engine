@@ -1,8 +1,8 @@
 #!/usr/bin/env ruby
 
-require 'fox16'
-require 'fox16/keys'
-include Fox
+#require 'fox16'
+#require 'fox16/keys'
+#include Fox
 
 # Namespace for input functionality.
 # Keyboard keys start at 0x0020 so custom codes
@@ -29,6 +29,10 @@ module LittleInput
   
   #treat consequetive commands as being held down
   #if the time between them is less than the cutoff
+  #in milliseconds
+  #TODO I need to manage when buttons are kept pressed
+  # down which gosu distinguishes between using button_down?
+  # inside the update method
   TIMER_CUTOFF = 600
   # Helper class for handling input. The scene should be
   # the current scene.
@@ -63,13 +67,13 @@ module LittleInput
     # @return true if the command could be executed,
     #         false otherwise.
     def execute
-      #TODO use generic markers for key sets, such as number, letter, function
       return false if @queue.empty?
       command = @queue.slice!(0)
       #check if the scene is active
       if @scene == command[LittleInput::SCENE]
         #access the appropriate method using call
         sym = @mapping[command[LittleInput::CODE]]
+        $FRAME.log(self, "execute", "#{sym.to_s}")
         if sym
           #as a note, all methods using this must take arguments
           #for this not to throw errors

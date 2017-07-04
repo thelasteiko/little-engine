@@ -1,0 +1,15 @@
+Need to find some way to handle input generically
+The way it's done in the tutorial it just checks
+to see if a button is pressed and executes some if statement
+
+button_down(id) is the method called in Gosu::Window whenever
+a button is pressed
+if I used this method we can create a hash much like i have
+already to register the button presses with an input manager
+That way when the scene changes, the input changes without
+having a long listing of conditions
+
+add up a running counter with ticks until the counter >= 1000
+
+The mouse can be followed by using mouse_x and mouse_y
+button_down handles the press of a mouse button as well as the keyboard

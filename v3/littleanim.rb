@@ -6,6 +6,9 @@ include Fox
 # Loads a spritesheet into a series of images and manages
 # the progression for playback.
 class Animation
+  # @!attribute [rw] duration
+  #   @return [Float]
+  attr_accessor :duration
   # Creates an Animation object. The last argument are optional variables
   # that can be passed in.
   # @param  filename  [String]  is the filename of the spritesheet.
