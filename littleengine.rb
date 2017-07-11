@@ -225,7 +225,7 @@ class Scene
     #                registered as numbers (the input code) and
     #                responses are symbols representing method names.
     def input_map
-      {}
+      {LittleInput::HOLD => []}
     end
     # Does clean up when the program closes.
     def on_close
