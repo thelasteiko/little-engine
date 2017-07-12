@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 require 'gosu'
 
 # @see{ https://github.com/gosu/gosu/wiki/Getting-Started-on-Linux }
@@ -6,6 +8,7 @@ require 'gosu'
 #for logging events in a file
 require_relative 'v1/littlelog'
 require_relative 'v2/littleinput'
+require_relative 'v2/littlegraphics'
 
 #Set this to true to display the debug information.
 $DEBUG = true
@@ -41,7 +44,7 @@ module Little
         # the graphics from the canvas.
         # @param tick [Numerical] is the milliseconds since the last
         #                         game loop started.
-        def draw (tick)
+        def draw (graphics, tick)
         end
     end
 
@@ -66,10 +69,11 @@ module Little
             @entities.delete_if {|i| i.remove}
         end
         # Tells the objects in this group to draw.
+        # @param graphics [Little::Graphics] graphics object
         # @param tick [Numerical] is the milliseconds since the last
         #                         game loop started.
-        def draw (tick)
-            @entities.each {|i| i.draw(tick)}
+        def draw (graphics, tick)
+            @entities.each {|i| i.draw(graphics, tick)}
         end
 
         # Add a new object to this group.
@@ -129,8 +133,8 @@ module Little
         #                              which to draw.
         # @param tick [Float] is the milliseconds since the last
         #                         game loop started.
-        def draw (tick)
-          @groups.each{|key, value| value.draw(tick)}
+        def draw (graphics, tick)
+          @groups.each{|key, value| value.draw(graphics, tick)}
         end
         # Adds a new game object to the indicated group.
         # If the group doesn't exist, it adds a new group.
@@ -185,7 +189,10 @@ module Little
         #                registered as numbers (the input code) and
         #                responses are symbols representing method names.
         def input_map
-          {LittleInput::HOLD => []} #lists method calls for holding down a button
+            #lists method calls for holding down a button
+            {Little::Input::HOLD => {}}
+            # the hold hash should have key codes mapped to symbols
+            # Ex: {Gosu::KB_W => :move_up}
         end
         # Does clean up when the program closes.
         def on_close
@@ -207,10 +214,14 @@ module Little
         # @!attribute [rw] input
         #   @return [LittleInput::Input] manages user input.
         attr_accessor   :input
+        # @!attribute [rw] camera
+        #   @return [Little::Camera] the camera object that translates
+        #   all graphics based on a focusable object.
+        attr_accessor   :camera
         
         # Creates the game and the variables needed
         # to time the loop correctly.
-      def initialize(w, h, c, newscene=nil)
+      def initialize(w, h, c="Test", newscene=nil)
         super(w,h)
         self.caption = c
         @tick = 0.0
@@ -222,12 +233,14 @@ module Little
         if newscene
           @newscene = newscene.new(self)
         end
-        @input = LittleInput::Input.new(self)
+        @input = Little::Input.new(self)
+        @camera = Little::Camera.new(w,h)
+        @graphics = Little::Graphics.new(self,@camera)
         if $PERFORMANCE
-          @@performance_log = LittleLog::Performance.new
+          @@performance_log = Little::Performance.new
         end
         if $LOG
-          @@debug_log = LittleLog::Debug.new
+          @@debug_log = Little::Debug.new
         end
         log self,"init","Game initialized"
       end
@@ -273,10 +286,12 @@ module Little
         while input.execute
           #handling input
         end
+        #check if there are hold down conditions in the scene
+        input.exe_running
       end
       def draw
         #print "Test"
-        @scene ? @scene.draw(@tick/1000.0) : nil
+        @scene ? @scene.draw(@graphics, @tick/1000.0) : nil
       end
       def button_down(id)
         #used for one shots; save to input manager?

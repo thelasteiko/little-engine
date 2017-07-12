@@ -1,45 +1,29 @@
 #!/usr/bin/env ruby
 
-#require 'fox16'
-#require 'fox16/keys'
-#include Fox
+require 'gosu'
 
 # Namespace for input functionality.
 # Keyboard keys start at 0x0020 so custom codes
 # can be created up to 20.
-module LittleInput
-  # Markers for the command.
-  HOLD = 0
-  #CODE = 1
-  #ARGS = 2
-  # Markers for mouse input.
-  MOUSE_LEFT = 0
-  MOUSE_RIGHT = 1
-  MOUSE_MIDDLE = 4
-  MOUSE_WHEEL = 2
-  MOUSE_MOTION = 3
-  # Markers for key type
-  KEYSET_OTHER = 8
-  KEYSET_NUMERICAL = 5
-  KEYSET_ALPHA = 6
-  KEYSET_FUNCTION = 7
-  
-  PRESS = 9
-  RELEASE = 10
+module Little
   
   class Command
     attr_accessor   :scene
+    # @!attribute   [rw]    code
+    #   @return [Fixnum]    The key code associated with the command.
     attr_accessor   :code
+    # @!attribute   [rw]    args
+    #   @return [Array]     Not being used currently, may be used in future.
     attr_accessor   :args
     
-    def initialize (scene, code, args)
+    def initialize (scene, code, args=nil)
         @scene = scene
         @code = code
         @args = args
     end
     
     def == obj
-        return false if not obj.is_a? LittleInput::Command
+        return false if not obj.is_a? Little::Command
         return (@code == obj.code and @scene == obj.scene)
     end
   end
@@ -51,7 +35,15 @@ module LittleInput
   # Helper class for handling input. The scene should be
   # the current scene.
   class Input
-    include LittleInput
+      # Markers for the command.
+      HOLD = "hold"
+
+      # Markers for key type
+      KEYSET_OTHER = "other"
+      KEYSET_NUMERICAL = "numerical"
+      KEYSET_ALPHA = "alpha"
+      KEYSET_FUNCTION = "function"
+
     # Creates an input object.
     # @param game [LittleGame] is the game object just in case.
     def initialize(game)
@@ -73,8 +65,8 @@ module LittleInput
     # @param code [Numeric] is the key or mouse code. This should
     #                       have a related response in the mapping.
     # @param args [Object] whatever is needed for the event to execute.
-    def add(code, args = [])
-      @queue.push(LittleInput::Command.new(@scene, code, args))
+    def add(code)
+      @queue.push(LittleInput::Command.new(@scene, code))
       #$FRAME.log self,"add","#{code}"
     end
     
@@ -82,62 +74,58 @@ module LittleInput
     # @return true if the command could be executed,
     #         false otherwise.
     def execute
-      return false if @queue.empty?
-      
-      #command = @queue.slice!(0)
-      command = @queue.shift
-      $FRAME.log self, "execute", "#{command.code}"
-      
+        # ensure that all parameters are valid
       return false if not @mapping or not @scene
-      return false if @last_command == command
+      return false if @queue.empty?
+      command = @queue.shift
+      while (!@queue.empty? and @last_command == command)
+        command = @queue.shift
+        $FRAME.log self, "execute", "#{command.code}"
+      end
+      return false if @last_command == command and @queue.empty?
       
+      #start processing input
       @last_command = command
       #check if the scene is active
       if @scene == command.scene
         #access the appropriate method using call
         sym = @mapping[command.code]
         if sym
-          #as a note, all methods using this must take arguments
-          #for this not to throw errors
           #@scene.send(sym, command[LittleInput::ARGS])
-          @scene.method(sym).call(command.args)
+          @scene.method(sym).call#(command.args)
           return true
         end
-        if command.code > LittleInput::MOUSE_MIDDLE
-          code = LittleInput::KEYSET_OTHER
-          if (command.code >= KEY_A and
-              command.code <= KEY_Z) or
-              (command.code >= KEY_a and
-              command.code <= KEY_z)
-            code = LittleInput::KEYSET_ALPHA
-          elsif (command.code >= KEY_0 and
-              command.code <= KEY_1)
-            code = LittleInput::KEYSET_NUMERICAL
-          elsif command.code >= KEY_F1 and
-              command.code <= KEY_R15
-            code = LittleInput::KEYSET_FUNCTION
+        # did not find a standard numerical code, searching for non-numeric
+          code = KEYSET_OTHER
+          if (command.code >= Gosu::KB_A and
+              command.code <= Gosu::KB_Z)
+            code = KEYSET_ALPHA
+          elsif (command.code >= Gosu::KB_0 and
+              command.code <= Gosu::KB_9)
+            code = KEYSET_NUMERICAL
+          elsif command.code >= Gosu::KB_F1 and
+              command.code <= Gosu::KB_F12
+            code = KEYSET_FUNCTION
           end
           sym = @mapping[code]
           if sym
-            #as a note, all methods using this must take arguments
-            #for this not to throw errors
-            @scene.method(sym).call(command.args)
+            @scene.method(sym).call#(command.args)
             return true
           end
-        end
       end
       #if the scene is not active or does not have a
       #corresponding response, return false
       return false
     end
+    # Process any input that has a continuous response, such as a button
+    # being held down.
     def exe_running
         return false if not @scene or not @mapping
-        a = @mapping[LittleInput::HOLD]
+        a = @mapping[Little::Input::HOLD]
         return false if not a
-        a.each do |i|
-            sym = @mapping[i]
-            if sym
-                @scene.method(sym).call #TODO no args for hold?
+        a.each do |key, value| # key code => method name symbol
+            if @game.button_down?(key)
+                @scene.method(value).call
             end
         end
         return true

@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require_relative 'littleanim'
+require_relative 'littlegraphics'
 require_relative './littleengine'
 
 # Namespace for constants related to objects.

@@ -2,12 +2,17 @@
 require_relative "littlegame.rb"
 
 class TestObject < Little::Object
+	include Little::Focusable
 	def initialize (game, scene)
 		super game, scene
+		@point = Little::Point.new(20,20)
+		#print "Created object\n"
 	end
 	
-	def draw (tick)
-		Gosu::draw_rect(20,20,50,50,Gosu::Color::WHITE)
+	def draw (graphics, tick)
+		#Gosu::draw_rect(20,20,50,50,Gosu::Color::WHITE)
+		#print "drawing object\n"
+		graphics.rect(point, 50, 50)
 	end
 end
 

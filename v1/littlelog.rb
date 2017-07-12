@@ -4,7 +4,7 @@ and save a record of debug comments, runtime performance and
 other statistical data.
 =end
 
-module LittleLog
+module Little
   LOG_FOLDER = "log/"
   # Standard log class. This class is meant to be extended.
   class Log
@@ -33,7 +33,7 @@ module LittleLog
     end
   end
   # Tracks statistical data through a csv file.
-  class Statistical < LittleLog::Log
+  class Statistical < Little::Log
     EXT = ".csv"
     # @!attribute [r] stat_list
     #   @return [Hash]
@@ -131,7 +131,7 @@ module LittleLog
   
   # Tracks statistical data about the performance of 
   # a program.
-  class Performance < LittleLog::Statistical
+  class Performance < Little::Statistical
   
     def initialize
       super("performance",date: 0,runs: 0,
@@ -148,7 +148,7 @@ module LittleLog
   end
   
   # Saves comments to a file for debugging.
-  class Debug < LittleLog::Log
+  class Debug < Little::Log
     EXT = ".txt"
     def initialize(qualifier="log")
       super()
