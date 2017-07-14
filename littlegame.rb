@@ -64,12 +64,18 @@ module Little
     class Group
         attr_accessor :scene
         attr_accessor :entities
+        attr_accessor   :order
+        
+        @@next_order = 1
+        
         # Creates the group.
         # @param scene [Scene] is the scene this group belongs to.
         def initialize (game, scene)
           @game = game
           @entities = []
           @scene = scene
+            @order = @@next_order
+            @@next_order += 1
         end
         # Updates the objects in this group.
         def update(params={})
@@ -81,7 +87,9 @@ module Little
         # @param tick [Numerical] is the milliseconds since the last
         #                         game loop started.
         def draw (graphics, tick)
+            graphics.start_group(@order)
             @entities.each {|i| i.__draw(graphics, tick)}
+            graphics.end_group(@order)
         end
 
         # Add a new object to this group.
@@ -127,7 +135,9 @@ module Little
         # @param game [Little::Game] is the game object owner.
         def initialize (game)
           @game = game
-          @groups = Hash.new
+            default_group = Group.new(game,self)
+            default_group.order = Little::Graphics::DEFAULT_ORDER
+          @groups = {default: default_group}
         end
         # Calls update on all the groups.
         def update (params={})
@@ -137,7 +147,7 @@ module Little
         # Calls draw on all the groups.
         # If a particular layering scheme needs to be
         # used, overwrite this.
-        # @param graphics [FXDCWindow] is the graphics object with
+        # @param graphics [Little::Graphics] is the graphics object with
         #                              which to draw.
         # @param tick [Float] is the milliseconds since the last
         #                         game loop started.
@@ -151,7 +161,7 @@ module Little
         # @param value [GameObject] is the object to add.
         def push (value,group=nil)
           g = group
-          if !g
+          if !group
             g = :default
           end
           if (!@groups[g])
