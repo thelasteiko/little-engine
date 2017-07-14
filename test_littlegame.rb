@@ -7,9 +7,16 @@ class TestObject < Little::Object
 	
 	def initialize (game, scene)
 		super game, scene
-		@point = Little::Point.new(20,20)
+		@point = Little::Point.new(0,0)
 		#print "Created object\n"
-		@path = Little::Path.new([20,20,50,20,50,50,20,50,20,20])
+		@path = Little::Path.new
+		y = 10
+		while y < 100
+			@path.push(10,y)
+			@path.push(750,y)
+			y += 50
+		end
+		game.camera.focus = self
 	end
 	
 	def draw (graphics, tick)
@@ -18,7 +25,8 @@ class TestObject < Little::Object
 		#graphics.rect(point, 50, 50)
 		#graphics.pixel(point)
 		graphics.path(path)
-		#graphics.line(point, Little::Point.new(30,50))
+		#graphics.line_ogl(point, Little::Point.new(10,60))
+		
 	end
 end
 

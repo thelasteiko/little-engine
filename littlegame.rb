@@ -224,15 +224,13 @@ module Little
       def initialize(w, h, c="Test", newscene=nil)
         super(w,h)
         self.caption = c
+        @newscene = newscene
         @tick = 0.0
         @time = Gosu.milliseconds #ms since start
         @scene = nil
         @end_game = false
         @num_runs = 0
         @tick_counter = 0
-        if newscene
-          @newscene = newscene.new(self)
-        end
         @input = Little::Input.new(self)
         @camera = Little::Camera.new(w,h)
         @graphics = Little::Graphics.new(self,@camera)
@@ -258,7 +256,7 @@ module Little
         end
         if @newscene
           @scene.on_close if @scene
-          @scene = @newscene
+          @scene = @newscene.new(self)
           @newscene = nil
          #start_input if @canvas and @input
          #@scene.load($FRAME.getApp())
