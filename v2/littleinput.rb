@@ -15,16 +15,21 @@ module Little
     # @!attribute   [rw]    args
     #   @return [Array]     Not being used currently, may be used in future.
     attr_accessor   :args
+    # @!attribute   [rw]    time
+    #   @return [Fixnum]    The timestamp for this command in milliseconds.
+    attr_accessor   :time
     
-    def initialize (scene, code, args=nil)
+    def initialize (scene, code, time, args=nil)
         @scene = scene
         @code = code
+        @time = time
         @args = args
     end
     
     def == obj
         return false if not obj.is_a? Little::Command
-        return (@code == obj.code and @scene == obj.scene)
+        return (@code == obj.code and @scene == obj.scene and
+          ((@time - obj.time).abs < 100)) #less than 1/100th of a second
     end
   end
   
@@ -66,7 +71,7 @@ module Little
     #                       have a related response in the mapping.
     # @param args [Object] whatever is needed for the event to execute.
     def add(code)
-      @queue.push(LittleInput::Command.new(@scene, code))
+      @queue.push(LittleInput::Command.new(@scene, code, Gosu::milliseconds))
       #$FRAME.log self,"add","#{code}"
     end
     
@@ -78,6 +83,7 @@ module Little
       return false if not @mapping or not @scene
       return false if @queue.empty?
       command = @queue.shift
+      #Need to add a timestamp...
       while (!@queue.empty? and @last_command == command)
         command = @queue.shift
         $FRAME.log self, "execute", "#{command.code}"
