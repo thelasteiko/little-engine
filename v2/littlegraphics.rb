@@ -127,9 +127,19 @@ module Little
     # points are clockwise
     class Graphics
         DEFAULT_COLOR = Gosu::Color::WHITE
+	    DEFAULT_ORDER = 0
         def initialize (game, camera)
             @game = game
             @camera = camera
+                @order = DEFAULT_ORDER
+        end
+        def start_group(order)
+                @order = order
+        end
+        def end_group(order)
+            if @order == order
+                @order = DEFAULT_ORDER
+            end
         end
         # Uses the OpenGL method to draw the line. This has inconsistent
         # behavior.
@@ -141,7 +151,7 @@ module Little
                 p2 = @camera.translate(point2)
 	    end            
             Gosu::draw_line(p1.x,p1.y, options[:color],
-		    p2.x,p2.y, options[:color])
+		    p2.x,p2.y, options[:color], @order)
         end
         # Creates a line between two points using the Bresenham line
         # algorithm and draws the pixels individually.
@@ -153,13 +163,13 @@ module Little
             end
         end
         def rect (point, width, height, options={color: DEFAULT_COLOR, focus: true})
-		p = point
-		if options[:focus]
-            	    #print "into drawing rect \n"
+		    p = point
+		    if options[:focus]
+                #print "into drawing rect \n"
             	    p = @camera.translate(point)
-		end
+		    end
             #print "translated point\n"
-            Gosu::draw_rect(p.x,p.y,width,height,options[:color])
+            Gosu::draw_rect(p.x,p.y,width,height,options[:color],@order)
         end
         # Colors a single pixel. Cost heavy.
             # TODO use Texplay instead
@@ -170,7 +180,7 @@ module Little
                         p = @camera.translate(point)
                 end
             #Gosu::draw_line(p.x,p.y,color,p.x,p.y,color)
-            Gosu::draw_rect(p.x,p.y,1,1,options[:color])
+            Gosu::draw_rect(p.x,p.y,1,1,options[:color],@order)
         end
         # Draws points from a path object.
         def path(path, options={color: DEFAULT_COLOR, focus: true})
@@ -186,12 +196,29 @@ module Little
                 i += 1
             end
         end
-        def image(image, point, options={color: DEFAULT_COLOR, focus: true, scale: Little::Point.new(1,1,1)})
+        def image(image, point, options={   color: DEFAULT_COLOR,
+                                            focus: true,
+                                            scale: Little::Point.new(1,1,1),
+                                            rotate: false,
+                                            rotate_angle:   0,      # TODO: check this -> in degrees w/ 0 being north or up and going clockwise
+                                            rotate_center: Little::Point.new(0.5,0.5)})    # "relative rotation origin"
                 p = point
+                r = options[:rotate_center]
                 if options[:focus]
                     p = @camera.translate(point)
+                    if options[:rotate]
+                        #r = @camera.translate(r) #TODO not sure about the affect of the rotate center
+                    end
                 end
-                image.draw(p.x,p.y,0,options[:scale].x,options[:scale].y)
+                if options[:rotate]
+                    #draw_rot(x, y, z, angle, center_x = 0.5, center_y = 0.5, scale_x = 1, scale_y = 1, color = 0xff_ffffff, mode = :default
+                    image.draw_rot(p.x,p.y.@order,
+                        options[:rotate_angle],r.x,r.y,
+                        options[:scale].x,options[:scale].y,
+                        options[:color])
+                else
+                    image.draw(p.x,p.y,@order,options[:scale].x,options[:scale].y)
+                end
         end
     end
     
