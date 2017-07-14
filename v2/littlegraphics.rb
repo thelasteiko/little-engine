@@ -196,13 +196,14 @@ module Little
         end
         
         def translate (point)
-            offset = Little::Point.new
             #print "1(#{point.x},#{point.y})\n"
-            if @focus and @focus.point
+            if @focus and @focus.point and not @focus.remove
                 #focus is at the center
                 offset = @focus.point.get_center_offset(@width, @height)
                 #print "2(#{offset.x},#{offset.y})\n"
-            end
+            else
+		offset = Little::Point.new
+	    end
             #p = point.clone #don't change the original
             #print "3(#{p.x-offset.x},#{p.y})\n"
             p = point.subtract(offset)
