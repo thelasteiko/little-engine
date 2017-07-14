@@ -133,34 +133,47 @@ module Little
         end
         # Uses the OpenGL method to draw the line. This has inconsistent
         # behavior.
-        def line_ogl (point1, point2, color=DEFAULT_COLOR)
-            p1 = @camera.translate(point1)
-            p2 = @camera.translate(point2)
-            Gosu::draw_line(p1.x,p1.y,color,p2.x,p2.y,color)
+        def line_ogl (point1, point2, options={color: DEFAULT_COLOR, focus: true})	
+		p1 = point1
+		p2 = point2
+            if options[:focus]
+	        p1 = @camera.translate(point1)
+                p2 = @camera.translate(point2)
+	    end            
+            Gosu::draw_line(p1.x,p1.y, options[:color],
+		    p2.x,p2.y, options[:color])
         end
         # Creates a line between two points using the Bresenham line
         # algorithm and draws the pixels individually.
-        def line (point1, point2, color=DEFAULT_COLOR)
+        def line (point1, point2, options={color: DEFAULT_COLOR, focus: true})
             #print "creating line\n"
             l = Path::bresenham_line(point1,point2)
             l.each do |i|
                 pixel(i,color)
             end
         end
-        def rect (point, width, height, color=DEFAULT_COLOR)
-            #print "into drawing rect \n"
-            p = @camera.translate(point)
+        def rect (point, width, height, options={color: DEFAULT_COLOR, focus: true})
+		p = point
+		if options[:focus]
+            	    #print "into drawing rect \n"
+            	    p = @camera.translate(point)
+		end
             #print "translated point\n"
-            Gosu::draw_rect(p.x,p.y,width,height,color)
+            Gosu::draw_rect(p.x,p.y,width,height,options[:color])
         end
         # Colors a single pixel. Cost heavy.
-        def pixel(point,color=DEFAULT_COLOR)
-            p = @camera.translate(point)
+            # TODO use Texplay instead
+        def pixel(point, options={color: DEFAULT_COLOR, focus: true})
+                p = point
+                if options[:focus]
+                        #print "into drawing rect \n"
+                        p = @camera.translate(point)
+                end
             #Gosu::draw_line(p.x,p.y,color,p.x,p.y,color)
-            Gosu::draw_rect(p.x,p.y,1,1,color)
+            Gosu::draw_rect(p.x,p.y,1,1,options[:color])
         end
         # Draws points from a path object.
-        def path(path, color=DEFAULT_COLOR)
+        def path(path, options={color: DEFAULT_COLOR, focus: true})
             points = path.points
             i = 1
             while i < points.size
@@ -173,9 +186,12 @@ module Little
                 i += 1
             end
         end
-        def image(image, point, scale=Little::Point.new(1,1,1))
-			p = @camera.translate(point)
-			image.draw(p.x,p.y,0,scale.x,scale.y)
+        def image(image, point, options={color: DEFAULT_COLOR, focus: true, scale: Little::Point.new(1,1,1)})
+                p = point
+                if options[:focus]
+                    p = @camera.translate(point)
+                end
+                image.draw(p.x,p.y,0,options[:scale].x,options[:scale].y)
         end
     end
     
