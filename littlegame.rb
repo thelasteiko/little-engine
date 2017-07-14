@@ -38,14 +38,22 @@ module Little
           @remove = false
         end
         # Update variables (hint: position) here.
-        def update(params={})
+        def __update(params={})
+            return nil if @remove
+            update (params)
+        end
+        def update (params={})
         end
         # Draw the object (picture or shape) using
         # the graphics from the canvas.
         # @param tick [Numerical] is the milliseconds since the last
         #                         game loop started.
-        def draw (graphics, tick)
+        def __draw (graphics, tick)
+            return nil if @remove
+            draw (graphics, tick)
         end
+        def draw (graphics, tick
+        end    
     end
 
     # Groups are for layering on the screen.
@@ -65,7 +73,7 @@ module Little
         end
         # Updates the objects in this group.
         def update(params={})
-            @entities.each {|i| i.update(params)}
+            @entities.each {|i| i.__update(params)}
             @entities.delete_if {|i| i.remove}
         end
         # Tells the objects in this group to draw.
@@ -73,7 +81,7 @@ module Little
         # @param tick [Numerical] is the milliseconds since the last
         #                         game loop started.
         def draw (graphics, tick)
-            @entities.each {|i| i.draw(graphics, tick)}
+            @entities.each {|i| i.__draw(graphics, tick)}
         end
 
         # Add a new object to this group.
