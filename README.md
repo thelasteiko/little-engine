@@ -75,5 +75,4 @@ source .bashrc
 ## File Descriptions
 * littleengine.rb is the fxruby version
 * littlegame.rb is the Gosu version
-* tester.rb demonstrates how the engine can be used as well as the debugger.
-* test2.rb is a simpler test of only the framework without any extensions.
+* test_littlegame.rb is the most up-to-date testing program, ie. this one works

@@ -48,6 +48,8 @@ module Little
       KEYSET_NUMERICAL = "numerical"
       KEYSET_ALPHA = "alpha"
       KEYSET_FUNCTION = "function"
+      KEYSET_DIRECTIONAL = "directional"
+      KEYSET_WASD = "wasd"
 
     # Creates an input object.
     # @param game [LittleGame] is the game object just in case.
@@ -71,7 +73,7 @@ module Little
     #                       have a related response in the mapping.
     # @param args [Object] whatever is needed for the event to execute.
     def add(code)
-      @queue.push(LittleInput::Command.new(@scene, code, Gosu::milliseconds))
+      @queue.push(Little::Command.new(@scene, code, Gosu::milliseconds))
       #$FRAME.log self,"add","#{code}"
     end
     
@@ -98,12 +100,22 @@ module Little
         sym = @mapping[command.code]
         if sym
           #@scene.send(sym, command[LittleInput::ARGS])
-          @scene.method(sym).call#(command.args)
+          @scene.method(sym).call(command)
           return true
         end
         # did not find a standard numerical code, searching for non-numeric
           code = KEYSET_OTHER
-          if (command.code >= Gosu::KB_A and
+          if (command.code == Gosu::KB_W or
+                command.code == Gosu::KB_A or
+                command.code == Gosu::KB_S or
+                command.code == Gosu::KB_D)
+            code = KEYSET_WASD
+          elsif (command.code == Gosu::KB_RIGHT or
+                  command.code == Gosu::KB_LEFT or
+                  command.code == Gosu::KB_UP or
+                  command.code == Gosu::KB_DOWN)
+            code = KEYSET_DIRECTIONAL
+          elsif (command.code >= Gosu::KB_A and
               command.code <= Gosu::KB_Z)
             code = KEYSET_ALPHA
           elsif (command.code >= Gosu::KB_0 and
@@ -115,7 +127,7 @@ module Little
           end
           sym = @mapping[code]
           if sym
-            @scene.method(sym).call#(command.args)
+            @scene.method(sym).call(command)
             return true
           end
       end
@@ -130,11 +142,55 @@ module Little
         a = @mapping[Little::Input::HOLD]
         return false if not a
         a.each do |key, value| # key code => method name symbol
-            if @game.button_down?(key)
-                @scene.method(value).call
+            code = key
+            if code.is_a? String
+                code = Little::Input::get_code_set(code)
+                code.each do |c|
+                    if @game.button_down? (c)
+                        @scene.method(value).call(c)
+                    end
+                end
+            else @game.button_down?(key)
+                @scene.method(value).call(key)
             end
         end
         return true
+    end
+
+    def self.get_code_set(code)
+          #code = KEYSET_OTHER
+          if code == KEYSET_WASD
+            return [Gosu::KB_W, Gosu::KB_A, Gosu::KB_S, Gosu::KB_D]
+          elsif code == KEYSET_DIRECTIONAL
+            return [Gosu::KB_RIGHT, Gosu::KB_LEFT, Gosu::KB_UP, Gosu::KB_DOWN]
+          elsif code == KEYSET_ALPHA
+            a = []
+            b = Gosu::KB_A
+            e = Gosu::KB_Z
+            while b <= e
+                a.push(b)
+                b += 1
+            end
+            return a
+          elsif code == KEYSET_NUMERICAL
+            a = []
+            b = Gosu::KB_0
+            e = Gosu::KB_9
+            while b <= e
+                a.push(b)
+                b += 1
+            end
+            return a
+          elsif code == KEYSET_FUNCTION
+            a = []
+            b = Gosu::KB_F1
+            e = Gosu::KB_F12
+            while b <= e
+                a.push(b)
+                b += 1
+            end
+            return a
+          end
     end
   end
 end

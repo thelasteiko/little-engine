@@ -145,6 +145,12 @@ module Little
         end
     end
     
+    module Typeable
+        def font
+            @font ||= Gosu::Font.new(12)
+        end
+    end
+    
     class Graphics
         
         DEFAULT_COLOR = Gosu::Color::WHITE
@@ -288,6 +294,9 @@ module Little
             if not options[:do_not_focus]
                 p = @camera.translate(point)
             end
+            if not options[:scale]
+                options[:scale] = Little::Point.new(1,1,1)
+            end
             if options[:rotate_angle]
                 r = options[:rotate_center]
                 if not r
@@ -300,6 +309,32 @@ module Little
                     options[:color])
             else
                 image.draw(p.x,p.y,@order,options[:scale].x,options[:scale].y)
+            end
+        end
+        
+        def text (string, font, point, options={ color: DEFAULT_COLOR,
+                                    do_not_focus: false,
+                                    alignment:  nil,
+                                    scale: Little::Point.new(1,1,1)})
+            p = point
+            if not options[:do_not_focus]
+                p = @camera.translate(point)
+            end
+            if not options[:color]
+                options[:color] = DEFAULT_COLOR
+            end
+            if not options[:scale]
+                options[:scale] = Little::Point.new(1,1,1)
+            end
+            if options[:alignment]
+               font.draw_rel(string, p.x, p.y, @order,
+                    options[:alignment].x, options[:alignment].y,
+                    options[:scale].x, options[:scale].y,
+                    options[:color])
+            else
+                font.draw(string, p.x, p.y, @order,
+                    options[:scale].x, options[:scale].y,
+                    options[:color])
             end
         end
 

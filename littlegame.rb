@@ -1,5 +1,12 @@
 #!/usr/bin/env ruby
 
+# Little is a small and unassuming game engine base on Gosu.
+# All rights go to the Gosu people for the Gosu code.
+#
+# Author::      Melinda Robertson
+# Copyright::   Copyright (c) 2017 Little, LLC
+# License::     GNU
+
 require 'gosu'
 
 # @see{ https://github.com/gosu/gosu/wiki/Getting-Started-on-Linux }
@@ -9,6 +16,7 @@ require 'gosu'
 require_relative 'v1/littlelog'
 require_relative 'v2/littleinput'
 require_relative 'v2/littlegraphics'
+require_relative 'v2/littleaudio'
 
 #Set this to true to display the debug information.
 $DEBUG = true
@@ -19,6 +27,7 @@ $LOG = false
 #Set this to true for tracking performance.
 $PERFORMANCE = false
 
+# The Little module is used as a namespace for all the things.
 module Little
 
     #Game objects do all the heavy lifting in the game.
@@ -40,7 +49,11 @@ module Little
         # Update variables (hint: position) here.
         def __update(params={})
             return nil if @remove
-            update (params)
+            if params.size == 0
+                update
+            else
+                update (params)
+            end
         end
         def update (params={})
         end
@@ -64,9 +77,9 @@ module Little
     class Group
         attr_accessor :scene
         attr_accessor :entities
-        attr_accessor   :order
+        attr_accessor :order
         
-        @@next_order = 1
+        @@next_order = 0
         
         # Creates the group.
         # @param scene [Scene] is the scene this group belongs to.
@@ -278,6 +291,7 @@ module Little
           @scene.on_close if @scene
           @scene = @newscene.new(self)
           @newscene = nil
+          @input.connect(@scene)
          #start_input if @canvas and @input
          #@scene.load($FRAME.getApp())
         end
@@ -301,11 +315,11 @@ module Little
         end
       end
       def handle_input
+        #check if there are hold down conditions in the scene
+        input.exe_running
         while input.execute
           #handling input
         end
-        #check if there are hold down conditions in the scene
-        input.exe_running
       end
       def draw
         #print "Test"
