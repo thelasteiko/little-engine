@@ -50,9 +50,9 @@ module Little
         #                         game loop started.
         def __draw (graphics, tick)
             return nil if @remove
-            draw (graphics, tick)
+            draw graphics, tick
         end
-        def draw (graphics, tick
+        def draw (graphics, tick)
         end    
     end
 
@@ -97,6 +97,9 @@ module Little
         def push (value)
             @entities.push(value)
         end
+        def each
+            @entities.each {|i| yield (i)}
+        end
         # Retrieve one of the objects in the group.
         # @param value [Fixnum] is the index of the object.
         def [] (value)
@@ -129,7 +132,6 @@ module Little
     # overwritten to create custom levels.
     class Scene
         attr_reader :groups
-        
         # Initializes the scene by setting up variables
         # and adding starting groups.
         # @param game [Little::Game] is the game object owner.
@@ -141,7 +143,7 @@ module Little
         end
         # Calls update on all the groups.
         def update (params={})
-          @groups.each{|key, value| value.update(params)}
+          @groups.each{|key, value| value.each{|i| i.__update(params)}}
           @groups.delete_if{|key,value| value.empty?}
         end
         # Calls draw on all the groups.
@@ -152,7 +154,7 @@ module Little
         # @param tick [Float] is the milliseconds since the last
         #                         game loop started.
         def draw (graphics, tick)
-          @groups.each{|key, value| value.draw(graphics, tick)}
+          @groups.each{|key, value| value.each{|i| i.__draw(graphics, tick)}}
         end
         # Adds a new game object to the indicated group.
         # If the group doesn't exist, it adds a new group.
@@ -258,7 +260,7 @@ module Little
         if $LOG
           @@debug_log = Little::Debug.new
         end
-        log self,"init","Game initialized"
+        log self,"init","Game initialized: Gosu v. #{Gosu::VERSION}"
       end
       # Sets the new scene to be updated on the
       # next run of the loop.

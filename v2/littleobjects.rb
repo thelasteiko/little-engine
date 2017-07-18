@@ -192,3 +192,68 @@ class Text < GameObject
 end
 
 end
+
+        # Creates a list of points defining a line using Bresenham's
+        # line algorithm. X_X TODO
+        def Little.bresenham_line(p1,p2)
+            line = []
+            x1 = 0
+            y1 = 0
+            x2 = 0
+            y2 = 0
+            if p1.y < p2.y
+                x1 = p1.x
+                y1 = p1.y
+                x2 = p2.x
+                y2 = p2.y
+            else
+                x1 = p2.x
+                y1 = p2.y
+                x2 = p1.x
+                y2 = p1.y
+            end
+            dx = x2 - x1
+            dy = y2 - y1
+            
+            print "(#{dx},#{dy})\n"
+            if (dx == 0) # vertical line
+                y = p1.y
+                if p1.y > p2.y
+                    while y > p2.y
+                        line.push (Little::Point.new(p1.x,y))
+                        y -= 1
+                    end
+                elsif p2.y > p1.y
+                    while y < p2.y
+                        line.push(Little::Point.new(p1.x,y))
+                        y += 1
+                    end
+                end
+                return line
+            end #vertical line
+            
+            derr = (dy/dx).abs
+            error = derr - 0.5
+            x = x1
+            s = y1
+            e = y2
+            a = 1
+            if (dy/dx) < 0
+                a = -1
+            end
+            print "#{x}:#{a}(#{s},#{e})\n"
+            for y in s..e
+                while error < 0.5
+                    print "(#{x},#{y})\n"
+                    line.push(Little::Point.new(x,y))
+                    x += a
+                    error += derr
+                end
+                if error >= 0.5
+                    print "#{error},#{x}\n"
+                    x += a
+                    error -= 1.0
+                end
+            end
+            return line
+        end # bresenham
