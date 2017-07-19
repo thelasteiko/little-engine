@@ -67,8 +67,7 @@ class TestAudio < GameObject
 	
 	def initialize (game, scene, x, y)
 		super game, scene, x, y
-		load_audio("./resource/song_for_dad.wav", "heartbeat", 1, 1, true)
-		play "heartbeat"
+		load_audio("./resource/song_for_dad.wav", name: "heartbeat", loop: true)
 	end
 	def update (params)
 		#$FRAME.log self, "update", "Checking playlist: #{playlist}"

@@ -153,7 +153,6 @@ module Little
     
     class Graphics
         
-        DEFAULT_COLOR = Gosu::Color::WHITE
         DEFAULT_ORDER = 0
         
         def initialize (game, camera)
@@ -171,22 +170,20 @@ module Little
         end
         # Uses the OpenGL method to draw the line. This has inconsistent
         # behavior but less buggy than line
-        def line_ogl (point1, point2, options={ 
-                                color: DEFAULT_COLOR, do_not_focus: false})
+        def line_ogl (point1, point2, options={})
             p1 = point1
             p2 = point2
-            if not options[:color]
-                options[:color] = DEFAULT_COLOR
-            end
+            set_default(options)
             if not options[:do_not_focus]
                 p1 = @camera.translate(p1)
                 p2 = @camera.translate(p2)
             end            
             Gosu::draw_line(p1.x,p1.y, options[:color],
-                p2.x,p2.y, options[:color], @order)
+                p2.x,p2.y, options[:color], options[:order])
         end
         # Creates a line between two points. Really buggy
-        def line (point1, point2, options={color: DEFAULT_COLOR, do_not_focus: false})
+        def line (point1, point2, options={})
+            set_default(options)
             path = Little::Path.new
             path.push(point1)
             path.push(point2)
@@ -201,35 +198,20 @@ module Little
         end
         # Draws a rectangle according to the provided options.
         # Needs at least a point, width and height.
-        def rect (point, width, height, options={color: DEFAULT_COLOR,
-                                                do_not_focus: false})
-            if options.size < 3
-                return nil
-            end
-            if not options[:color]
-                options[:color] = DEFAULT_COLOR
-            end
-            p = options[:point]
-            if not p
-                p = Little::Point.new(options[:x], options[:y])
-            end
+        def rect (point, width, height, options={})
+            set_default(options)
             if not options[:do_not_focus]
                 #print "into drawing rect \n"
                 p = @camera.translate(p)
             end
             #$FRAME.log self, "rect", "Color: #{options[:color]}"
-            Gosu::draw_rect(p.x,p.y,options[:width],options[:height],
-                options[:color],@order)
+            Gosu::draw_rect(p.x,p.y,width,height,
+                options[:color],options[:order])
         end
         # Colors a single pixel.
-        def pixel(point, options={color: DEFAULT_COLOR, do_not_focus: false})
-            p = options[:point]
-            if not p
-                p = Little::Point.new(options[:x], options[:y])
-            end
-            if not options[:color]
-                options[:color] = DEFAULT_COLOR
-            end
+        def pixel(point, options={})
+            p = point
+            set_default(options)
             #$FRAME.log self, "pixel", "Point 1 #{p.x}, #{p.y}"
             if not options[:do_not_focus]
                 p = @camera.translate(p)
@@ -239,12 +221,9 @@ module Little
             img.draw p.x, p.y, 1
         end
         # Colors a set of pixels.
-        def pixels (points, options={   color: DEFAULT_COLOR,
-                                        do_not_focus: false})
+        def pixels (points, options={})
+            set_default(options)
             p = points.to_relative
-            if not options[:color]
-                options[:color] = DEFAULT_COLOR
-            end
             img = nil
             if points.is_a? Little::Path
                 img = TexPlay::create_image(@game, points.width, points.height)
@@ -264,10 +243,8 @@ module Little
             img.draw center.x,center.y,1
         end
         # Draws points from a path object using TexPlay. This works better than line.
-        def path(path, options={color: DEFAULT_COLOR, do_not_focus: false})
-            if not options[:color]
-                options[:color] = DEFAULT_COLOR
-            end
+        def path(path, options={})
+            set_default(options)
             img = TexPlay::create_blank_image(@game, path.width, path.height)
             p = path.to_relative
             #$FRAME.log self, "path", "#{p.size}"
@@ -282,59 +259,64 @@ module Little
         end
         
         # Draws an image, rotate goes clockwise from north
-        def image(image, point, options={ color: DEFAULT_COLOR,
-                                    do_not_focus: false,
-                                    scale: Little::Point.new(1,1,1),
-                                    rotate_angle:   nil,      # in degrees w/ 0 being north or up and going clockwise
-                                    rotate_center: nil})    # "relative rotation origin"
+        def image(image, point, options={})    # "relative rotation origin"
+            set_default(options)
             p = point
-            if not options[:color]
-                options[:color] = DEFAULT_COLOR
-            end
             if not options[:do_not_focus]
                 p = @camera.translate(point)
             end
-            if not options[:scale]
-                options[:scale] = Little::Point.new(1,1,1)
-            end
-            if options[:rotate_angle]
+            if options[:rotate_angle] != 0
                 r = options[:rotate_center]
-                if not r
-                    r = Little::Point.new(0.5,0.5)
-                end
                 #draw_rot(x, y, z, angle, center_x = 0.5, center_y = 0.5, scale_x = 1, scale_y = 1, color = 0xff_ffffff, mode = :default
-                image.draw_rot(p.x,p.y, @order,
+                image.draw_rot(p.x,p.y, options[:order],
                     options[:rotate_angle],r.x,r.y,
                     options[:scale].x,options[:scale].y,
                     options[:color])
             else
-                image.draw(p.x,p.y,@order,options[:scale].x,options[:scale].y)
+                image.draw(p.x,p.y,options[:order],options[:scale].x,options[:scale].y)
             end
         end
         
-        def text (string, font, point, options={ color: DEFAULT_COLOR,
-                                    do_not_focus: false,
-                                    alignment:  nil,
-                                    scale: Little::Point.new(1,1,1)})
+        def text (string, font, point, options={})
+            set_default(options)
             p = point
             if not options[:do_not_focus]
                 p = @camera.translate(point)
             end
-            if not options[:color]
-                options[:color] = DEFAULT_COLOR
-            end
-            if not options[:scale]
-                options[:scale] = Little::Point.new(1,1,1)
-            end
             if options[:alignment]
-               font.draw_rel(string, p.x, p.y, @order,
+               font.draw_rel(string, p.x, p.y, options[:order],
                     options[:alignment].x, options[:alignment].y,
                     options[:scale].x, options[:scale].y,
                     options[:color])
             else
-                font.draw(string, p.x, p.y, @order,
+                font.draw(string, p.x, p.y, options[:order],
                     options[:scale].x, options[:scale].y,
                     options[:color])
+            end
+        end
+        
+        # These functions provide default values for the graphics object.
+        # So the user (and I) don't have to provide all the things
+        def default_options
+            return {
+                color:          Gosu::Color::WHITE,
+                do_not_focus:   false,
+                alignment:      nil,
+                scale:          Little::Point.new(1,1,1),
+                rotate_angle:   0,
+                rotate_center:  Little::Point.new(0.5,0.5),
+                order:          @order
+            }
+        end
+        
+        private
+        def set_default (opt)
+            dopt = default_options
+            keys = dopt.keys
+            keys.each do |k|
+                if not opt[k]
+                    opt[k] = dopt[k]
+                end
             end
         end
 
@@ -380,10 +362,6 @@ module Little
                 a.push translate(p)
             end
             return a
-        end
-        
-        def translate_on (origin, point)
-            # use the origin to translate?
         end
     end
 end

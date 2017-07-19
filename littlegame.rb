@@ -47,6 +47,7 @@ module Little
           @remove = false
         end
         # Update variables (hint: position) here.
+        protected
         def __update(params={})
             return nil if @remove
             if params.size == 0
@@ -61,6 +62,7 @@ module Little
         # the graphics from the canvas.
         # @param tick [Numerical] is the milliseconds since the last
         #                         game loop started.
+        protected
         def __draw (graphics, tick)
             return nil if @remove
             draw graphics, tick
