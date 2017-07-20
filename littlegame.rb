@@ -36,38 +36,39 @@ module Little
     #game object doing it.
     #To use the game object, overwrite the functions.
     class Object
+        attr_accessor   :game
         attr_accessor   :group
         attr_accessor   :scene
         attr_accessor   :remove
         # Creates the object.
-        def initialize (game, scene)
-          @game = game
-          @scene = scene
+        def initialize
+          @game = nil
+          @scene = nil
           @group = nil
           @remove = false
         end
         # Update variables (hint: position) here.
         protected
-        def __update(params={})
+        def __update(tick)
             return nil if @remove
             if params.size == 0
                 update
             else
-                update (params)
+                update tick
             end
         end
-        def update (params={})
+        def update (tick)
         end
         # Draw the object (picture or shape) using
         # the graphics from the canvas.
         # @param tick [Numerical] is the milliseconds since the last
         #                         game loop started.
         protected
-        def __draw (graphics, tick)
+        def __draw (graphics)
             return nil if @remove
             draw graphics, tick
         end
-        def draw (graphics, tick)
+        def draw (graphics)
         end    
     end
 
@@ -77,39 +78,43 @@ module Little
     # objects to the scene, they will be added to a
     # :default group.
     class Group
-        attr_accessor :scene
-        attr_accessor :entities
-        attr_accessor :order
+        attr_accessor   :game
+        attr_accessor   :scene
+        attr_reader     :entities
+        attr_accessor   :order
+        attr_accessor   :remove
         
         @@next_order = 0
         
         # Creates the group.
         # @param scene [Scene] is the scene this group belongs to.
         def initialize (game, scene)
-          @game = game
-          @entities = []
-          @scene = scene
+            @game = game
+            @entities = []
+            @scene = scene
+            @remove = false
             @order = @@next_order
             @@next_order += 1
         end
         # Updates the objects in this group.
-        def update(params={})
-            @entities.each {|i| i.__update(params)}
+        def update(tick)
+            @entities.each {|i| i.__update(tick)}
             @entities.delete_if {|i| i.remove}
         end
         # Tells the objects in this group to draw.
         # @param graphics [Little::Graphics] graphics object
         # @param tick [Numerical] is the milliseconds since the last
         #                         game loop started.
-        def draw (graphics, tick)
+        def draw (graphics)
             graphics.start_group(@order)
-            @entities.each {|i| i.__draw(graphics, tick)}
+            @entities.each {|i| i.__draw(graphics)}
             graphics.end_group(@order)
         end
 
         # Add a new object to this group.
-        # @param value [GameObject] is the object to add.
+        # @param value [Object] is the object to add.
         def push (value)
+            value.group = self
             @entities.push(value)
         end
         def each
@@ -138,6 +143,13 @@ module Little
         def empty?
             return @entities.empty?
         end
+        def on_close
+            @entities.each {|i| i.on_close}
+        end
+        # Return only the first object.
+        def object
+            return @entities[0]
+        end
     end
 
     # The scene is a convenient way to switch entire sets
@@ -146,20 +158,21 @@ module Little
     # The scene is generally the object that should be
     # overwritten to create custom levels.
     class Scene
-        attr_reader :groups
+        attr_reader   :game
+
         # Initializes the scene by setting up variables
         # and adding starting groups.
         # @param game [Little::Game] is the game object owner.
         def initialize (game)
-          @game = game
-            default_group = Group.new(game,self)
+            @game = game
+            default_group = Group.new (game, self)
             default_group.order = Little::Graphics::DEFAULT_ORDER
-          @groups = {default: default_group}
+            @groups = {default: default_group}
         end
         # Calls update on all the groups.
-        def update (params={})
-          @groups.each{|key, value| value.each{|i| i.__update(params)}}
-          @groups.delete_if{|key,value| value.empty?}
+        def update (tick)
+          @groups.each{|key, value| value.each{|i| i.__update(tick)}}
+          @groups.delete_if{|key,value| value.remove}
         end
         # Calls draw on all the groups.
         # If a particular layering scheme needs to be
@@ -168,8 +181,8 @@ module Little
         #                              which to draw.
         # @param tick [Float] is the milliseconds since the last
         #                         game loop started.
-        def draw (graphics, tick)
-          @groups.each{|key, value| value.each{|i| i.__draw(graphics, tick)}}
+        def draw (graphics)
+          @groups.each{|key, value| value.each{|i| i.__draw(graphics)}}
         end
         # Adds a new game object to the indicated group.
         # If the group doesn't exist, it adds a new group.
@@ -177,6 +190,8 @@ module Little
         # @param group [Group] is the group to add the object to. Use a symbol.
         # @param value [GameObject] is the object to add.
         def push (value,group=nil)
+            value.game = @game
+            value.scene = self
           g = group
           if !group
             g = :default
@@ -184,7 +199,7 @@ module Little
           if (!@groups[g])
               @groups[g] = Group.new(@game, self)
           end
-          value.group = @groups[g]
+          #value.group = @groups[g]
           @groups[g].push(value)
         end
         # Removes the indicated game object from the scene.
@@ -192,7 +207,6 @@ module Little
         # @param value [Fixnum] is the index of the object to remove.
         def delete_at (value, group=nil)
           if (group)
-            #@groups[group].slice!(value)
             @groups[group].delete_at(value)
           else
             @groups[:default].delete_at(value)
@@ -219,6 +233,10 @@ module Little
           @groups[:default][index]
         end
         
+        def group(sym)
+            return @groups[sym]
+        end
+        
         # The input map that relates input events to method names.
         # @return [Hash] of type [Numerical, Symbol] where events are
         #                registered as numbers (the input code) and
@@ -231,6 +249,7 @@ module Little
         end
         # Does clean up when the program closes.
         def on_close
+            @groups.each {|i| i.on_close}
         end
         def group_keys
             return @groups.keys
@@ -256,10 +275,14 @@ module Little
         
         # Creates the game and the variables needed
         # to time the loop correctly.
+        # The first scene created should not need parameters.
+        # ==== Attributes
+        # +newscene+ - The class name of the scene to instantiate first.
       def initialize(w, h, c="Test", newscene=nil)
         super(w,h)
         self.caption = c
         @newscene = newscene
+        @newscene_param = nil
         @tick = 0.0
         @time = Gosu.milliseconds #ms since start
         @scene = nil
@@ -280,8 +303,12 @@ module Little
       # Sets the new scene to be updated on the
       # next run of the loop.
       # @param scene [Scene] is the new scene.
-      def changescene (scene)
+      # ==== Attributes
+      # +scene+ All scenes should be passed by class name.
+      # +scene_param+ - Parameters to be passed to the new scene on instantiation.
+      def changescene (scene, scene_param=nil)
         @newscene = scene
+        @newscene_param = scene_param
       end
         
       def update
@@ -291,11 +318,15 @@ module Little
         end
         if @newscene
           @scene.on_close if @scene
-          @scene = @newscene.new(self)
+            if @newscene_param
+                @scene = @newscene.new (self, @newscene_param)
+            else
+                @scene = @newscene.new (self)
+            end
+            # don't keep stray references
           @newscene = nil
-          @input.connect(@scene)
-         #start_input if @canvas and @input
-         #@scene.load($FRAME.getApp())
+          @newscene_param = nil
+          @input.connect(@scene) #connect to input manager
         end
         lasttick = @time
         @time = Gosu.milliseconds
@@ -305,13 +336,13 @@ module Little
             @num_runs += 1
             if (@tick_counter >= 1000)
               log(self,"update","FPS: #{@num_runs}")
-              log(self, "update", "TICK: #{@tick/1000.0}")
+              log(self, "update", "TICK: #{@tick/100.0}")
               @tick_counter = 0
               @num_runs = 0
             end
         end
         handle_input
-        @scene ? @scene.update(tick: @tick) : nil
+        @scene ? @scene.update(@tick / 100.0) : nil
         if $PERFORMANCE
           @@performance_log.inc(:runs)
         end
@@ -325,7 +356,7 @@ module Little
       end
       def draw
         #print "Test"
-        @scene ? @scene.draw(@graphics, @tick/1000.0) : nil
+        @scene ? @scene.draw(@graphics) : nil
       end
       def button_down(id)
         #used for one shots; save to input manager?

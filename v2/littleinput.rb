@@ -145,7 +145,7 @@ module Little
             code = key
             if code.is_a? String
                 code = Little::Input::get_code_set(code)
-                code.each do |c|
+                code.each do |c| #TODO is this too much work?
                     if @game.button_down? (c)
                         @scene.method(value).call(c)
                     end
@@ -156,7 +156,7 @@ module Little
         end
         return true
     end
-
+    # Returns a list of Gosu key codes related to the given keyset.
     def self.get_code_set(code)
           #code = KEYSET_OTHER
           if code == KEYSET_WASD

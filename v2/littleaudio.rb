@@ -1,5 +1,7 @@
 #!/usr/bin/env ruby
 
+# The Audible module manages tracks and samples and is meant to be
+# included in a scene or object.
 require 'gosu'
 
 module Little
@@ -34,7 +36,9 @@ module Little
 		end
 		
 	end
-	
+	# The AudioSample class instantiates a Gosu::SampleInstance when
+	# play is called. It keeps a reference to the last sample instance
+	# played but does allow for multiple instances at a time.
 	class AudioSample < Little::Audio
 		
 		attr_accessor	:speed
@@ -49,6 +53,8 @@ module Little
 			@speed = speed
 			@pan = pan
 		end
+		# Play will resume the last instance if it was paused. Otherwise
+		# it creates a new instance.
 		protected
 		def __play
 			#$FRAME.log self, "done", "I am a #{super.class.name}"
@@ -158,22 +164,24 @@ module Little
 				current_audio = nil
 				return nil
 			end
-			if options[:volume]
-				audio.volume = options[:volume]
-			end
-			if options[:loop]
-				audio.loop = options[:loop]
-			end
-			if audio.is_a? Little::AudioSample
-				if options[:speed]
-					audio.speed = options[:speed]
+			if options.size != 0
+				if options[:volume]
+					audio.volume = options[:volume]
 				end
-				if options[:pan]
-					audio.pan = options[:pan]
+				if options[:loop]
+					audio.loop = options[:loop]
 				end
-			else if audio.is_a? Little::AudioTrack
-				if options[:override]
-					audio.override = options[:override]
+				if audio.is_a? Little::AudioSample
+					if options[:speed]
+						audio.speed = options[:speed]
+					end
+					if options[:pan]
+						audio.pan = options[:pan]
+					end
+				else if audio.is_a? Little::AudioTrack
+					if options[:override]
+						audio.override = options[:override]
+					end
 				end
 			end
 			audio.play
