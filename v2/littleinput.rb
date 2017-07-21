@@ -29,13 +29,14 @@ module Little
     def == obj
         return false if not obj.is_a? Little::Command
         return (@code == obj.code and @scene == obj.scene and
-          ((@time - obj.time).abs < 100)) #less than 1/100th of a second
+          ((@time - obj.time).abs < 300)) #less than 3/100th of a second
+    end
+    def to_s
+        return "Little::Command=(#{@code},#{@time})"
     end
   end
   
-  #TODO I need to manage when buttons are kept pressed
-  # down which gosu distinguishes between using button_down?
-  # inside the update method
+  #TODO How to manage typed input? Gosu has TextInput so how do I incorporate it?
 
   # Helper class for handling input. The scene should be
   # the current scene.
@@ -85,24 +86,18 @@ module Little
       return false if not @mapping or not @scene
       return false if @queue.empty?
       command = @queue.shift
-      #Need to add a timestamp...
       while (!@queue.empty? and @last_command == command)
         command = @queue.shift
-        $FRAME.log self, "execute", "#{command.code}"
+        $FRAME.log self, "execute", "#{@last_command}==#{command}", verbose: true
       end
       return false if @last_command == command and @queue.empty?
-      
+      $FRAME.log self, "execute", "Q=#{@queue.size}, #{@last_command}==#{command}", verbose: true
       #start processing input
       @last_command = command
       #check if the scene is active
       if @scene == command.scene
-        #access the appropriate method using call
-        sym = @mapping[command.code]
-        if sym
-          #@scene.send(sym, command[LittleInput::ARGS])
-          @scene.method(sym).call(command)
-          return true
-        end
+        return true if call_scene_method(command)
+        $FRAME.log self, "execute", "Did not find #{command}", verbose: true
         # did not find a standard numerical code, searching for non-numeric
           code = KEYSET_OTHER
           if (command.code == Gosu::KB_W or
@@ -110,26 +105,31 @@ module Little
                 command.code == Gosu::KB_S or
                 command.code == Gosu::KB_D)
             code = KEYSET_WASD
-          elsif (command.code == Gosu::KB_RIGHT or
+            return true if call_scene_method(command, code)
+          end
+          if (command.code == Gosu::KB_RIGHT or
                   command.code == Gosu::KB_LEFT or
                   command.code == Gosu::KB_UP or
                   command.code == Gosu::KB_DOWN)
             code = KEYSET_DIRECTIONAL
-          elsif (command.code >= Gosu::KB_A and
+            return true if call_scene_method(command, code)
+          end
+          if (command.code >= Gosu::KB_A and
               command.code <= Gosu::KB_Z)
             code = KEYSET_ALPHA
-          elsif (command.code >= Gosu::KB_0 and
+            return true if call_scene_method(command, code)
+          end
+          if (command.code >= Gosu::KB_0 and
               command.code <= Gosu::KB_9)
             code = KEYSET_NUMERICAL
-          elsif command.code >= Gosu::KB_F1 and
+            return true if call_scene_method(command, code)
+          end
+          if command.code >= Gosu::KB_F1 and
               command.code <= Gosu::KB_F12
             code = KEYSET_FUNCTION
+            return true if call_scene_method(command, code)
           end
-          sym = @mapping[code]
-          if sym
-            @scene.method(sym).call(command)
-            return true
-          end
+          return true if call_scene_method(command, code)
       end
       #if the scene is not active or does not have a
       #corresponding response, return false
@@ -155,6 +155,17 @@ module Little
             end
         end
         return true
+    end
+    
+    def call_scene_method(command, code=nil)
+        c = code ? code : command.code
+        sym = @mapping[c]
+        if sym
+            $FRAME.log self, "execute", "Sending #{command} to #{@scene}", verbose: true
+            @scene.method(sym).call(command)
+            return true
+        end
+        return false
     end
     # Returns a list of Gosu key codes related to the given keyset.
     def self.get_code_set(code)

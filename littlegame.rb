@@ -20,6 +20,8 @@ require_relative 'v2/littleaudio'
 
 #Set this to true to display the debug information.
 $DEBUG = true
+#Set this to true to show verbose debug info
+$VERBOSE = false
 #Set this to true to display FPS and tick.
 $SHOW_FPS = true
 #Set this to true to save comments to file.
@@ -41,35 +43,35 @@ module Little
         attr_accessor   :scene
         attr_accessor   :remove
         # Creates the object.
-        def initialize
-          @game = nil
-          @scene = nil
-          @group = nil
-          @remove = false
+        def initialize (param=nil)
+            param = {} if not param
+            @game = param[:game] ? param[:game] : nil
+            @scene = param[:scene] ? param[:scene]: nil
+            @group = param[:group] ? param[:group] : nil
+            @remove = false
         end
-        # Update variables (hint: position) here.
-        protected
         def __update(tick)
             return nil if @remove
-            if params.size == 0
-                update
-            else
-                update tick
-            end
+            update tick
         end
+        # Update variables (hint: position) here.
         def update (tick)
+            $FRAME.log self, "update", "Not implemented", verbose: true
+        end
+        def __draw (graphics)
+            return nil if @remove
+            draw graphics
         end
         # Draw the object (picture or shape) using
         # the graphics from the canvas.
         # @param tick [Numerical] is the milliseconds since the last
         #                         game loop started.
-        protected
-        def __draw (graphics)
-            return nil if @remove
-            draw graphics, tick
-        end
         def draw (graphics)
-        end    
+            $FRAME.log self, "draw", "Not implemented", verbose: true
+        end
+        def on_close
+            $FRAME.log self, "on_close", "Not implemented", verbose: true
+        end
     end
 
     # Groups are for layering on the screen.
@@ -131,8 +133,8 @@ module Little
         def delete_at(value)
             @entities.delete_at(value)
         end
-        def contains(value)
-          @entities.contains(value)
+        def include?(value)
+          @entities.include?(value)
         end
         def index(value)
           @entities.index(value)
@@ -158,20 +160,31 @@ module Little
     # The scene is generally the object that should be
     # overwritten to create custom levels.
     class Scene
-        attr_reader   :game
+        attr_reader     :game
+        attr_reader     :input_map
 
         # Initializes the scene by setting up variables
         # and adding starting groups.
         # @param game [Little::Game] is the game object owner.
         def initialize (game)
             @game = game
-            default_group = Group.new (game, self)
+            default_group = Group.new game, self
             default_group.order = Little::Graphics::DEFAULT_ORDER
             @groups = {default: default_group}
+            @request_mutex = Mutex.new
         end
         # Calls update on all the groups.
         def update (tick)
-          @groups.each{|key, value| value.each{|i| i.__update(tick)}}
+          #@groups.each{|key, value| value.each{|i| i.__update(tick)}}
+            threads = []
+            @groups.each do |key, value|
+                threads.push (Thread.new { value.each {|i| i.__update(tick) }})
+            end
+            threads.each do |t|
+                #$FRAME.log self, "update", "#{t.value}"
+                t.join
+            end
+            process_requests
           @groups.delete_if{|key,value| value.remove}
         end
         # Calls draw on all the groups.
@@ -182,7 +195,11 @@ module Little
         # @param tick [Float] is the milliseconds since the last
         #                         game loop started.
         def draw (graphics)
-          @groups.each{|key, value| value.each{|i| i.__draw(graphics)}}
+          @groups.each do |key, value|
+            graphics.start_group(value.order)
+            value.each{|i| i.__draw(graphics)}
+            graphics.end_group(value.order)
+          end  
         end
         # Adds a new game object to the indicated group.
         # If the group doesn't exist, it adds a new group.
@@ -197,7 +214,7 @@ module Little
             g = :default
           end
           if (!@groups[g])
-              @groups[g] = Group.new(@game, self)
+              @groups[g] = Group.new @game, self
           end
           #value.group = @groups[g]
           @groups[g].push(value)
@@ -233,28 +250,47 @@ module Little
           @groups[:default][index]
         end
         
-        def group(sym)
-            return @groups[sym]
-        end
-        
         # The input map that relates input events to method names.
         # @return [Hash] of type [Numerical, Symbol] where events are
         #                registered as numbers (the input code) and
         #                responses are symbols representing method names.
         def input_map
             #lists method calls for holding down a button
-            {Little::Input::HOLD => {}}
+            @input_map ||= {Little::Input::HOLD => {}}
             # the hold hash should have key codes mapped to symbols
             # Ex: {Gosu::KB_W => :move_up}
         end
+        # Sender is responsible for saving any needed arguments
+        def queue_request(sender, method)
+            @request_mutex.synchronize {
+                if not @request_queue
+                    @request_queue = Hash.new
+                end
+                @request_queue[sender] = method
+            }
+        end
         # Does clean up when the program closes.
         def on_close
-            @groups.each {|i| i.on_close}
+            @groups.each {|k,v| v.on_close}
         end
         def group_keys
             return @groups.keys
         end
-
+        
+        def to_s
+            return "Little::Scene<#{self.object_id}>=#{@groups.size}"
+        end
+        # Processes requests made during the multi-threaded update.
+        private
+        def process_requests
+            return nil if not @request_queue or @request_queue.empty?
+            @request_queue.delete_if do |sender, method|
+                # Return true for the request to be deleted, or
+                # false if we need to try again
+                sender.method(method).call
+                #$FRAME.log self, "process_request", "Sent back #{r}"
+            end
+        end
     end
 
     class Game < Gosu::Window
@@ -281,6 +317,7 @@ module Little
       def initialize(w, h, c="Test", newscene=nil)
         super(w,h)
         self.caption = c
+        @log_mutex = Mutex.new
         @newscene = newscene
         @newscene_param = nil
         @tick = 0.0
@@ -319,7 +356,7 @@ module Little
         if @newscene
           @scene.on_close if @scene
             if @newscene_param
-                @scene = @newscene.new (self, @newscene_param)
+                @scene = @newscene.new self, @newscene_param
             else
                 @scene = @newscene.new (self)
             end
@@ -365,18 +402,21 @@ module Little
         #log self,"button","#{id}"
         input.add(id)
       end
-      def log (sender, method, message="test", exit=false)
-          if $DEBUG
-            time = Gosu.milliseconds
-            print "#{time}:#{sender.class.name}:#{method}:#{message}\n"
-          end
-          if $LOG
-            @@debug_log.log sender,method,note
-          end
-          if exit
-            close
-          end
-      end
+    def log (sender, method, message="test", options={})
+        @log_mutex.synchronize {
+            if $DEBUG
+                return nil if options[:verbose] and not $VERBOSE
+                time = Gosu.milliseconds
+                print "#{time}:#{sender.class.name}<#{sender.object_id}>:#{method}:#{message}\n"
+            end
+            if $LOG
+                @@debug_log.log sender,method,note
+            end
+            if options[:exit]
+                close
+            end
+        }
+    end
       
       def close
         @scene.on_close if @scene

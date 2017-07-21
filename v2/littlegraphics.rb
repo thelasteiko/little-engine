@@ -164,6 +164,7 @@ module Little
                 @order = order
         end
         def end_group(order)
+            #$FRAME.log self, "end_group", "Order: #{order}==#{@order}"
             if @order == order
                 @order = DEFAULT_ORDER
             end
@@ -318,6 +319,8 @@ module Little
                     opt[k] = dopt[k]
                 end
             end
+            opt[:order] = @order
+            #$FRAME.log self, "set_default", "Order: #{opt[:order]}"
         end
 
     end

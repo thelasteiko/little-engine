@@ -22,19 +22,18 @@ module Little
 			@play_count += 1
 			__play
 		end
-		protected
-		def __play
-			$FRAME.log self, "__play", "Not implemented"
-		end
 		
 		def pause
-			$FRAME.log self, "pause", "Unsupported"
+			$FRAME.log self, "pause", "Unsupported", verbose: true
 		end
 		
 		def stop
-			$FRAME.log self, "stop", "Unsupported"
+			$FRAME.log self, "stop", "Unsupported", verbose: true
 		end
-		
+		protected
+		def __play
+			$FRAME.log self, "__play", "Not implemented", verbose: true
+		end
 	end
 	# The AudioSample class instantiates a Gosu::SampleInstance when
 	# play is called. It keeps a reference to the last sample instance
@@ -48,23 +47,10 @@ module Little
 		attr_reader		:sample
 		
 		def initialize (filename, volume = 1, loop = false, speed = 1, pan = 0)
-			super (filename, volume, loop)
+			super filename, volume, loop
 			@sample = Gosu::Sample.new(filename)
 			@speed = speed
 			@pan = pan
-		end
-		# Play will resume the last instance if it was paused. Otherwise
-		# it creates a new instance.
-		protected
-		def __play
-			#$FRAME.log self, "done", "I am a #{super.class.name}"
-			if @instance and @instance.paused?
-				@instance.resume
-			elsif pan != 0
-				@instance = @sample.play_pan(@pan,@volume,@speed,@loop)
-			else
-				@instance = @sample.play(@volume,@speed,@loop)
-			end
 		end
 		
 		def done?
@@ -90,6 +76,19 @@ module Little
 				@instance = nil
 			end
 		end
+		# Play will resume the last instance if it was paused. Otherwise
+		# it creates a new instance.
+		protected
+		def __play
+			#$FRAME.log self, "done", "I am a #{super.class.name}"
+			if @instance and @instance.paused?
+				@instance.resume
+			elsif pan != 0
+				@instance = @sample.play_pan(@pan,@volume,@speed,@loop)
+			else
+				@instance = @sample.play(@volume,@speed,@loop)
+			end
+		end
 	end
 	
 	class AudioTrack < Little::Audio
@@ -97,9 +96,21 @@ module Little
 		attr_accessor	:override
 		
 		def initialize(filename, volume = 1, loop = false, override = false)
-			super (filename, volume, loop)
+			super filename, volume, loop
 			@track = Gosu::Song.new(filename)
 			@override = override
+		end
+		
+		def pause
+			@track.pause
+		end
+		
+		def stop
+			@track.stop
+		end
+		
+		def playing?
+			return @track.playing?
 		end
 		protected
 		def __play
@@ -113,18 +124,6 @@ module Little
 					@track.play(@loop)
 				end
 			end
-		end
-		
-		def pause
-			@track.pause
-		end
-		
-		def stop
-			@track.stop
-		end
-		
-		def playing?
-			return @track.playing?
 		end
 	end
 	# Add this module to an object to have audio.
@@ -178,7 +177,7 @@ module Little
 					if options[:pan]
 						audio.pan = options[:pan]
 					end
-				else if audio.is_a? Little::AudioTrack
+				elsif audio.is_a? Little::AudioTrack
 					if options[:override]
 						audio.override = options[:override]
 					end

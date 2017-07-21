@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-require_relative './littlegame'
+require_relative '../littlegame.rb'
 
 module Little
 
@@ -13,11 +13,13 @@ module Little
 	# So it should change the ordering of groups based on what's happening
 	# in the game.
 	class Manager < Little::Object
+		MIN_ORDER = 0
+		MAX_ORDER = 99
 		attr_reader		:type
 		attr_reader		:ordering
 		attr_accessor	:changed
 		def initialize (type = "base", ordering={})
-			super
+			super ()
 			@type = type
 			@ordering = ordering #set ordering of listed groups?
 			@changed = true
@@ -26,9 +28,16 @@ module Little
 		# If no changes are to be made to the ordering it skips this so it doesn't
 		# bog down the game.
 		# It will always run the full update if its the first time.
-		def update
+		def update (tick)
+			return nil if not @changed
+			return nil if not @group or not @group.scene
+			@group.scene.queue_request(self, :update_groups)
+		end
+		def update_groups
+			#$FRAME.log self, "update_groups", "Change is #{@changed}"
 			# to differentiate between changing and not, we return true
 			return true if not @changed
+			# We do something based on what manager we have.
 			# we must be registered as a manager to access groups
 			g = @scene.request_groups(self)
 			if g
@@ -41,12 +50,15 @@ module Little
 						$FRAME.log self, "update", "#{k} is not managed."
 					end
 				end
-				update_groups(g)
+				#TODO need to keep the ordering...but...has to be
+				# incremented by 1, can't skip numbers?
+				__update_groups(g)
 			end
 			@changed = false
+			return true
 		end
-		def update_groups(g)
-			# We do something based on what manager we have.
+		
+		def __update_groups(g)
 			$FRAME.log self, "update_groups", "Not implemented"
 		end
 
@@ -54,18 +66,16 @@ module Little
 	
 	class LayerManager < Little::Manager
 		def initialize
-			super ("layer", {
+			super "layer", {
 				background:	0,
 				midground:	50,
-				foreground:	98
-			})
-			
+				foreground:	98}
 		end
 		
 		# Updates the z-order (draw order) of each group based on the
 		# manager's ordering hash. If a group can't be found, create one.
 		# The manager should have full control over groups.
-		def update_groups(g)
+		def __update_groups(g)
 			@ordering.each do |k, v|
 				#change the order attribute to match the ordering array
 				if not g[k]
@@ -73,21 +83,20 @@ module Little
 					# listing of groups, so add any that aren't there.
 					g[k] = Group.new(@game,@scene)
 				end
+				$FRAME.log self, "update_groups", "Changing the order of #{k} to #{v}."
 				g[k].order = v
 			end
 		end
 		def set_order (sym, num)
-			if @ordering[sym]
-				@ordering[sym] = num
-				@changed = true
-			end
+			@ordering[sym] = num
+			@changed = true
 		end
 		# Add an object that can move between layers.
 		# These objects will change z-order depending on the perspective
 		# that manager is trying for. We have to add it to a new group
 		# and change order based on x, y, z
 		def add_moveable (object)
-			$FRAME.log self. "add_moveable", "Not implemented"
+			$FRAME.log self, "add_moveable", "Not implemented"
 		end
 	end
 	# Add to a scene to allow manager objects to manipulate
@@ -107,7 +116,7 @@ module Little
 		def permissable (requester)
 			return true if requester == self
 			if @groups and @groups[:managers]
-				return @groups[:managers].contains(requester)
+				return @groups[:managers].include?(requester)
 			end
 			return false
 		end
@@ -134,4 +143,21 @@ module Little
 			return nil
 		end
 	end
+	# Add to a scene and call the method to create methods that return
+	# the first object for every group not excluded
+	# The method can be called more than once
+	module Accessible
+		def create_quick_list (exclude=[:default])
+			return nil if not @groups
+			keys = @groups.keys
+			keys.each do |sym|
+				if not exclude.include?(sym)
+					define_singleton_method("#{sym}") do
+						return @groups[sym].object
+					end
+				end
+			end
+		end
+	end
+	
 end
