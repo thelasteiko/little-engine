@@ -6,7 +6,7 @@ class GameObject < Little::Object
 	include Little::Focusable
 	
 	def initialize (x, y)
-		super ()
+		super()
 		point.x = x
 		point.y = y
 	end
@@ -21,20 +21,26 @@ class TestDraw < GameObject
 		#@path = Little::Path.new
 		path.push(10, 59)
 		path.push(83,45)
+		path.push(45, 90)
+		path.push(90,10)
 		#path.each {|i| $FRAME.log self, "each", "#{i}"}
 		#game.camera.focus = self
 	end
-	
+	def load
+		@image = path.to_img
+	end
 	def draw (graphics)
 		#Gosu::draw_rect(20,20,50,50,Gosu::Color::WHITE)
 		#print "drawing object\n"
 		#graphics.rect(point, 50, 50)
 		#graphics.pixel(point: point)
-		graphics.path(path)
+		#graphics.path(path)
 		#graphics.line_ogl(point, Little::Point.new(10,60))
 		#graphics.line(point, Little::Point.new(10,60))
 		#graphics.rect(50,50,point: point)
 		#graphics.pixels(path, color: Gosu::Color::BLUE)
+		$FRAME.log self, "draw", "#{point}"
+		graphics.image(@image, point)
 	end
 end
 
@@ -45,14 +51,26 @@ class TestImage < GameObject
 		#game.camera.focus = self
 		@focused = false
 		@speed = 10
+		@level = y
+		@order = 2
+	end
+	
+	def load
+		@game.input.register(self, @scene, Little::Input::KEYSET_DIRECTIONAL,
+				:move, hold:	true)
 	end
 	
 	def update (tick)
 		if not @focused
-			#@game.camera.focus = self
+			@game.camera.focus = self
 			@focused = true
 		end
 		@tick = tick
+		if point.y >= 225
+			@game.input.request(self, @scene, :change_order, args: 0)
+		else
+			@game.input.request(self, @scene, :change_order, args: 2)
+		end
 	end
 	
 	def draw (graphics)
@@ -71,6 +89,13 @@ class TestImage < GameObject
 			point.x += (@speed * @tick)
 		end
 	end
+	
+	def change_order (o)
+		#man = @scene.get_manager("layer")
+		#if man
+		#	man.set_order(:player, o)
+		#end
+	end
 end
 
 class TestText < GameObject
@@ -82,13 +107,18 @@ class TestText < GameObject
 		@string = "Input: "
 		@tick_count = 0
 	end
+	def load
+		@game.input.register(self, @scene, Little::Input::KEYSET_ALPHA,:type)
+	end
 	def update (tick)
 		@tick_count += tick
-		if @tick_count >= 5
-			$FRAME.log self, "update", "I'm sending a request."
-			@group.scene.queue_request(self, :request)
-			@tick_count = 0
-		end
+		#if @tick_count >= 5
+			#$FRAME.log self, "update", "I'm sending a request."
+			#@scene.queue_request(self, :request)
+			#@game.input.request(self, @group.scene, :request, args: @game.scene.player)
+			#@tick_count = 0
+		#end
+		#request(@scene.player)
 	end
 	def draw (graphics)
 		graphics.text @string, font, point, do_not_focus:	true
@@ -97,8 +127,11 @@ class TestText < GameObject
 		@string += Gosu::button_id_to_char(command)
 	end
 	
-	def request
-		$FRAME.log self, "request", "My request was processed."
+	def request (player)
+		#$FRAME.log self, "request", "My request was processed."
+		#@string = "#{player.point.x}, #{player.point.y}"
+		#$FRAME.log self, "request", "Obj at #{point.y} is changing player #{(@c * point.y)}."
+		#player.point.x += (@c * point.y)
 		return true
 	end
 end
@@ -106,15 +139,15 @@ end
 class TestAudio < GameObject
 	include Little::Audible
 	
-	def initialize ( x, y)
-		super x, y
+	def initialize
+		super 0,0
 		load_sample("./resource/song_for_dad.wav", name: "heartbeat", loop: true)
 	end
 	def update (tick)
 		#$FRAME.log self, "update", "Checking playlist: #{playlist}"
 		#$FRAME.log self, "update", "Checking done: #{playlist["heartbeat"].done?}"
 		if playlist["heartbeat"].done?
-			$FRAME.log self, "update", "Attempting to play"
+			#$FRAME.log self, "update", "Attempting to play"
 			play "heartbeat"
 		end
 	end
@@ -126,46 +159,36 @@ class TestBackground < GameObject
 		@image = Gosu::Image.new("resource/greenandspace.png")
 	end
 	def draw(graphics)
-		graphics.image @image,point, do_not_focus:	true
+		graphics.image @image,point #, do_not_focus:	true
 	end
 end
 
 class TestScene < Little::Scene
-	include Little::Accessible
-	include Little::Manageable
 	
 	def initialize (game)
 		super (game)
 		push (TestDraw.new(50,50)), :foreground
 		push TestImage.new(43, 80), :player
-		push TestText.new(54,92), :text
-		push (TestAudio.new(93,278))
+		#push (TestAudio.new)
 		push TestBackground.new, :background
 		@type_count = 0
-		create_quick_list [:default, :background, :foreground]
-		man = Little::LayerManager.new
-		add_manager(man)
-		man.set_order(:player, 2)
+		#create_quick_list [:default, :background, :foreground, :text]
+		push TestText.new(10, 10), :text
+		#man = Little::LayerManager.new
+		#add_manager(man)
+		#man.set_order(:player, 2)
+		#man.set_order(:background, 1)
+		#man.set_order(:foreground, 3)
 		#push (TestObject.new(game,self,80,100))
+		$FRAME.log self, "init", "W: #{game.width}, H: #{game.height}"
 	end
-	def input_map
-		return {
-			Little::Input::HOLD => {Little::Input::KEYSET_DIRECTIONAL => :move},
-			Little::Input::KEYSET_ALPHA => :type
-		}
+	def player
+		return @groups[:player].object
 	end
+=begin
 	def move (command)
 		#$FRAME.log self, "move", "I'm going #{command}"
 		player.move(command)
-	end
-	def type (command)
-		@type_count += 1
-		#$FRAME.log self, "type", "#{@type_count}: Typing #{command}"
-		text.type(command.code)
-	end
-=begin
-	def player
-		return @groups[:player].object
 	end
 	def text
 		return @groups[:text].object

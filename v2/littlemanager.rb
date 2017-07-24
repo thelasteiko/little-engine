@@ -19,7 +19,7 @@ module Little
 		attr_reader		:ordering
 		attr_accessor	:changed
 		def initialize (type = "base", ordering={})
-			super ()
+			super()
 			@type = type
 			@ordering = ordering #set ordering of listed groups?
 			@changed = true
@@ -31,9 +31,9 @@ module Little
 		def update (tick)
 			return nil if not @changed
 			return nil if not @group or not @group.scene
-			@group.scene.queue_request(self, :update_groups)
+			@game.input.request(self, @group.scene, :__update_groups)
 		end
-		def update_groups
+		def __update_groups
 			#$FRAME.log self, "update_groups", "Change is #{@changed}"
 			# to differentiate between changing and not, we return true
 			return true if not @changed
@@ -47,58 +47,24 @@ module Little
 					# don't worry about ordering if its not there
 					if not @ordering[k]
 						@ordering[k] = 99 #drawing last
-						$FRAME.log self, "update", "#{k} is not managed."
+						#$FRAME.log self, "update", "#{k} is not managed."
 					end
 				end
-				#TODO need to keep the ordering...but...has to be
-				# incremented by 1, can't skip numbers?
-				__update_groups(g)
+				update_groups(g)
 			end
 			@changed = false
 			return true
 		end
 		
-		def __update_groups(g)
+		def update_groups(g)
 			$FRAME.log self, "update_groups", "Not implemented"
 		end
 
 	end
 	
-	class LayerManager < Little::Manager
-		def initialize
-			super "layer", {
-				background:	0,
-				midground:	50,
-				foreground:	98}
-		end
-		
-		# Updates the z-order (draw order) of each group based on the
-		# manager's ordering hash. If a group can't be found, create one.
-		# The manager should have full control over groups.
-		def __update_groups(g)
-			@ordering.each do |k, v|
-				#change the order attribute to match the ordering array
-				if not g[k]
-					# The manager should always have the more correct
-					# listing of groups, so add any that aren't there.
-					g[k] = Group.new(@game,@scene)
-				end
-				$FRAME.log self, "update_groups", "Changing the order of #{k} to #{v}."
-				g[k].order = v
-			end
-		end
-		def set_order (sym, num)
-			@ordering[sym] = num
-			@changed = true
-		end
-		# Add an object that can move between layers.
-		# These objects will change z-order depending on the perspective
-		# that manager is trying for. We have to add it to a new group
-		# and change order based on x, y, z
-		def add_moveable (object)
-			$FRAME.log self, "add_moveable", "Not implemented"
-		end
-	end
+	# Layer manager isn't needed if objects handle their own ordering.
+	
+	
 	# Add to a scene to allow manager objects to manipulate
 	# the scene's groups.
 	module Manageable
@@ -127,7 +93,6 @@ module Little
 			end
 			if not @groups[:managers]
 				@groups[:managers] = Little::Group.new(@game, self)
-				@groups[:managers].order = -1
 			end
 			manager.game = @game
 			manager.scene = self

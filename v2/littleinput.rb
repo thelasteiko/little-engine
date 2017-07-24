@@ -3,12 +3,12 @@
 require 'gosu'
 
 # Namespace for input functionality.
-# Keyboard keys start at 0x0020 so custom codes
-# can be created up to 20.
 module Little
   
   class Command
     attr_accessor   :scene
+    attr_accessor	:requester
+    attr_accessor	:method_sym
     # @!attribute   [rw]    code
     #   @return [Fixnum]    The key code associated with the command.
     attr_accessor   :code
@@ -19,21 +19,31 @@ module Little
     #   @return [Fixnum]    The timestamp for this command in milliseconds.
     attr_accessor   :time
     
-    def initialize (scene, code, time, args=nil)
+    def initialize (requester, scene, method_sym, options={})
+		@requester = requester
         @scene = scene
-        @code = code
-        @time = time
-        @args = args
+        @method_sym = method_sym
+        @code = options[:code] ? options[:code] : nil
+        @time = options[:time] ? options[:time] : nil
+        @args = options[:args] ? options[:args] : nil
     end
     
     def == obj
         return false if not obj.is_a? Little::Command
+        t = true
+        if @time and obj.time
+			#less than 3/100th of a second
+			t = ((@time - obj.time).abs < 300)
+        end
         return (@code == obj.code and @scene == obj.scene and
-          ((@time - obj.time).abs < 300)) #less than 3/100th of a second
+			@requester == obj.requester and
+			@method_sym == obj.method_sym and t)
     end
+    
     def to_s
-        return "Little::Command=(#{@code},#{@time})"
+        return "Little::Command=(#{@requester},#{@scene},#{@method_sym},#{@code},#{@time})"
     end
+    
   end
   
   #TODO How to manage typed input? Gosu has TextInput so how do I incorporate it?
@@ -53,28 +63,97 @@ module Little
       KEYSET_WASD = "wasd"
 
     # Creates an input object.
-    # @param game [LittleGame] is the game object just in case.
+    # @param game [Little:Game] is the game object just in case.
     def initialize(game)
       @queue = Array.new
+      @queue_mutex = Mutex.new
       @game = game
       @last_command = nil
+      @hold_map = Hash.new
+      @single_map = Hash.new
+      @request_queue = []
     end
     # Connect a differenct scene so that it's methods
-    # get called during user input.
+    # get called during user input. If the scene has an input_map
+    # it will be added to this object's input maps.
     # @param scene [Scene] is the current scene.
-    # @param mapping [Array] is an array of symbols that relate back to
-    #                         methods in the scene for various inputs.
     def connect(scene)
-      @scene = scene
-      @mapping = scene.input_map
+		return nil if @scene == scene.class.name
+		@scene = scene.class.name
+		clear
+		return nil if not scene.input_map
+		
+		scene.input_map.each do |key, value|
+			if key == Little::Input::HOLD
+				value.each do |k,v|
+					register(@scene,scene,k,v, hold: true)
+				end
+			else
+				register(@scene, scene, key, value)
+			end
+		end
     end
     
-    # Should be called when any type of input is received.
+    #Registers an object with a code that will be called
+    # whenever the key or button is pressed
+    # === Attributes
+    # +requester+ 		- The object whose method will be called.
+    # +sending_scene+ 	- The scene the object belongs to.
+    # +code+ 			- Fixnum or String that input will respond to.
+    # +method_sym+		- The symbol representing the method to call.
+    # +options+			- Hash of additional options: [args: Array, hold: Boolean]
+    def register (requester, sending_scene, code, method_sym, options={})
+		#return nil if sending_scene.class.name != @scene
+		sc = sending_scene.class.name
+		$FRAME.log self, "register", "Registering #{requester} to #{code}"
+		if method_sym.is_a? String
+			method_sym = method_sym.to_sym
+		end
+		opt = {
+			code:	code,
+			time:	Gosu::milliseconds,
+			args:	options[:args]}
+        if options[:hold]
+            if not @hold_map[code]
+                @hold_map[code] = []
+            end
+            @hold_map[code].push(Little::Command.new(
+				requester, sc, method_sym, opt))
+        else
+            if not @single_map[code]
+                @single_map[code] = []
+            end
+            @single_map[code].push(Little::Command.new(
+				requester, sc, method_sym, opt))
+        end
+    end
+    
+    # Queues requests from objects that are called once and do not have
+    # a corresponding code or continuous response.
+    # === Attributes
+    # +requester+ 		- The object whose method will be called.
+    # +sending_scene+ 	- The scene the object belongs to.
+    # +method_sym+		- The symbol representing the method to call.
+    # +options+			- Hash of additional options: [args: Array]
+    def request(requester, sending_scene, method_sym, options={})
+		#$FRAME.log self, "request", "Processing incoming request: #{requester}, #{method_sym}"
+        @queue_mutex.synchronize {
+			return nil if sending_scene.class.name != @scene
+			opt = {
+				time:	Gosu::milliseconds,
+				args:	options[:args]}
+            @request_queue.push Little::Command.new(
+				requester, sending_scene.class.name, method_sym, opt)
+        }
+    end
+    
+    # The game calls this method on button_down. It registers the key
+    # code as an event and queues it for processing.
     # @param code [Numeric] is the key or mouse code. This should
     #                       have a related response in the mapping.
-    # @param args [Object] whatever is needed for the event to execute.
     def add(code)
-      @queue.push(Little::Command.new(@scene, code, Gosu::milliseconds))
+      @queue.push(Little::Command.new(self, @scene, nil,
+		code: code, time: Gosu::milliseconds))
       #$FRAME.log self,"add","#{code}"
     end
     
@@ -83,21 +162,21 @@ module Little
     #         false otherwise.
     def execute
         # ensure that all parameters are valid
-      return false if not @mapping or not @scene
+      return false if not @scene
       return false if @queue.empty?
       command = @queue.shift
       while (!@queue.empty? and @last_command == command)
         command = @queue.shift
-        $FRAME.log self, "execute", "#{@last_command}==#{command}", verbose: true
+        #$FRAME.log self, "execute", "#{@last_command}==#{command}", verbose: true
       end
       return false if @last_command == command and @queue.empty?
-      $FRAME.log self, "execute", "Q=#{@queue.size}, #{@last_command}==#{command}", verbose: true
+      #$FRAME.log self, "execute", "Q=#{@queue.size}, #{@last_command}==#{command}"
       #start processing input
       @last_command = command
       #check if the scene is active
       if @scene == command.scene
-        return true if call_scene_method(command)
-        $FRAME.log self, "execute", "Did not find #{command}", verbose: true
+        return true if call_method(command)
+        #$FRAME.log self, "execute", "Did not find #{command}", verbose: true
         # did not find a standard numerical code, searching for non-numeric
           code = KEYSET_OTHER
           if (command.code == Gosu::KB_W or
@@ -105,31 +184,31 @@ module Little
                 command.code == Gosu::KB_S or
                 command.code == Gosu::KB_D)
             code = KEYSET_WASD
-            return true if call_scene_method(command, code)
+            return true if call_method(command, code)
           end
           if (command.code == Gosu::KB_RIGHT or
                   command.code == Gosu::KB_LEFT or
                   command.code == Gosu::KB_UP or
                   command.code == Gosu::KB_DOWN)
             code = KEYSET_DIRECTIONAL
-            return true if call_scene_method(command, code)
+            return true if call_method(command, code)
           end
           if (command.code >= Gosu::KB_A and
               command.code <= Gosu::KB_Z)
             code = KEYSET_ALPHA
-            return true if call_scene_method(command, code)
+            return true if call_method(command, code)
           end
           if (command.code >= Gosu::KB_0 and
               command.code <= Gosu::KB_9)
             code = KEYSET_NUMERICAL
-            return true if call_scene_method(command, code)
+            return true if call_method(command, code)
           end
           if command.code >= Gosu::KB_F1 and
               command.code <= Gosu::KB_F12
             code = KEYSET_FUNCTION
-            return true if call_scene_method(command, code)
+            return true if call_method(command, code)
           end
-          return true if call_scene_method(command, code)
+          return true if call_method(command, code)
       end
       #if the scene is not active or does not have a
       #corresponding response, return false
@@ -138,35 +217,89 @@ module Little
     # Process any input that has a continuous response, such as a button
     # being held down.
     def exe_running
-        return false if not @scene or not @mapping
-        a = @mapping[Little::Input::HOLD]
-        return false if not a
-        a.each do |key, value| # key code => method name symbol
-            code = key
-            if code.is_a? String
-                code = Little::Input::get_code_set(code)
+        return false if not @scene
+        return false if @hold_map.empty?
+        @hold_map.each do |key, ary| # key code => array of commands
+            if key.is_a? String
+                code = Little::Input::get_code_set(key)
                 code.each do |c| #TODO is this too much work?
                     if @game.button_down? (c)
-                        @scene.method(value).call(c)
+						ary.each do |lc|
+							if lc.scene == @scene
+								req = lc.requester
+								sym = lc.method_sym
+								# Send the command from input so we know the key code
+								m = req.method(sym)
+								if m.arity == 1
+									m.call(c)
+								elsif m.arity == 2
+									m.call(c, lc.args)
+								else
+									m.call
+								end
+							end
+						end
                     end
                 end
             else @game.button_down?(key)
-                @scene.method(value).call(key)
+				ary.each do |lc|
+					if lc.scene == @scene
+						req = lc.requester
+						sym = lc.method_sym
+						# Send the command from input so we know the key code
+						req.method(sym).call(key)
+					end
+				end
             end
         end
         return true
     end
-    
-    def call_scene_method(command, code=nil)
-        c = code ? code : command.code
-        sym = @mapping[c]
-        if sym
-            $FRAME.log self, "execute", "Sending #{command} to #{@scene}", verbose: true
-            @scene.method(sym).call(command)
-            return true
+    # Processes the requests made by objects during threaded execution.
+    # This helps ensure that race conditions do not occur.
+	def service_requests
+        @request_queue.delete_if do |c|
+			#$FRAME.log self, "service_requests", "Serviceing #{c}"
+            req = c.requester
+            if req and not req.remove
+                if c.args
+                    req.method(c.method_sym).call(c.args)
+                else
+                    req.method(c.method_sym).call
+                end
+            end
         end
-        return false
     end
+    # Scrubs the queues by removing dead objects
+    def clean
+        @single_map.each do |k,v|
+            v.delete_if do |i|
+                return true if not i.requester
+                return true if i.requester.remove
+                false
+            end
+        end
+        @hold_map.each do |k, v|
+            v.delete_if do |i|
+                return true if not i.requester
+                return true if i.requester.remove
+                false
+            end
+        end
+        @request_queue.delete_if {
+            return true if not i.requester
+            return true if i.requester.remove
+            false
+        }
+    end
+	# Removes everything from all maps and queues.
+    def clear
+        @single_map.clear
+        @hold_map.clear
+        @request_queue.clear
+        @queue.clear
+        @last_command = nil
+    end
+    
     # Returns a list of Gosu key codes related to the given keyset.
     def self.get_code_set(code)
           #code = KEYSET_OTHER
@@ -202,6 +335,38 @@ module Little
             end
             return a
           end
+    end
+    
+    # Commands here do not have the requester or method
+    # Everything is in the mapped array
+    # === Attributes
+    # +command+ - 	Record of the button or key being pressed, this is
+    #				different from the registered command.
+    # +code+ -		Sent if the key in the map is not directly related
+    #				to a button number. Optional
+    private
+    def call_method(command, code=nil)
+		$FRAME.log self, "execute", "Sending #{code} to #{@scene}"
+        c = code ? code : command.code
+        ary = @single_map[c]
+        if ary
+			$FRAME.log self, "execute", "Sending #{code} to #{@scene}"
+            ary.each do |lc| # check through each object registered to this code
+				if lc.scene == @scene
+					req = lc.requester
+					sym = lc.method_sym
+					m = req.method(sym)
+					if m.arity > 0
+						# Send the command from input so we know the key code
+						m.call(command.code)
+					else
+						m.call
+					end
+				end
+			end
+            return true
+        end
+        return false
     end
   end
 end

@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 
-# Little is a small and unassuming game engine base on Gosu.
+# Little is a small and unassuming game engine based on Gosu.
 # All rights go to the Gosu people for the Gosu code.
 #
 # Author::      Melinda Robertson
@@ -9,14 +9,9 @@
 
 require 'gosu'
 
+
 # @see{ https://github.com/gosu/gosu/wiki/Getting-Started-on-Linux }
 # @see{ http://www.rubydoc.info/github/gosu/gosu/Gosu }
-
-#for logging events in a file
-require_relative 'v1/littlelog'
-require_relative 'v2/littleinput'
-require_relative 'v2/littlegraphics'
-require_relative 'v2/littleaudio'
 
 #Set this to true to display the debug information.
 $DEBUG = true
@@ -28,6 +23,42 @@ $SHOW_FPS = true
 $LOG = false
 #Set this to true for tracking performance.
 $PERFORMANCE = false
+$INPUT = true
+$GRAPHICS = true
+$AUDIO = true
+
+def print_exception(exception, explicit, critical=false)
+    puts "[#{explicit ? 'EXPLICIT' : 'INEXPLICIT'}] #{exception.class}: #{exception.message}"
+    puts exception.backtrace.join("\n")
+    if critical
+        abort("Critical exception, exiting.\n")
+    else
+        puts "Non-critical, continuing..."
+    end
+end
+
+begin
+    # Logs messages and performance to a file.
+    if $LOG
+        require_relative 'v1/littlelog'
+    end
+    # Handles user input
+    if $INPUT
+        require_relative 'v2/littleinput'
+    end
+    # Draws things on the canvas
+    if $GRAPHICS
+        require_relative 'v2/littlegraphics'
+    end
+    # Helper modules and methods for audio
+    if $AUDIO
+        require_relative 'v2/littleaudio'
+    end
+rescue LoadError => e
+    print_exception(e, true)
+rescue Exception => e
+    print_exception(e, false)
+end
 
 # The Little module is used as a namespace for all the things.
 module Little
@@ -36,20 +67,26 @@ module Little
     #If there's something to see there's a game object
     #behind it. If there's something to do, there's a
     #game object doing it.
-    #To use the game object, overwrite the functions.
+    #To use the game object, overwrite the load, update and draw functions.
     class Object
         attr_accessor   :game
         attr_accessor   :group
         attr_accessor   :scene
         attr_accessor   :remove
-        # Creates the object.
-        def initialize (param=nil)
-            param = {} if not param
-            @game = param[:game] ? param[:game] : nil
-            @scene = param[:scene] ? param[:scene]: nil
-            @group = param[:group] ? param[:group] : nil
+        attr_accessor   :order
+        # Creates the object with all variables set to nil.
+        def initialize
+            $FRAME.log self, "init", "Object initialized.", verbose: true
             @remove = false
+            @order = nil
         end
+        # Called after the objects are added to a group. Perform here any
+        # initialization operations that require the game, scene or group.
+        def load
+            $FRAME.log self, "load", "Not implemented."
+        end
+        # Bumper method that ensures update is not called if the object
+        # is set to be removed.
         def __update(tick)
             return nil if @remove
             update tick
@@ -58,15 +95,19 @@ module Little
         def update (tick)
             $FRAME.log self, "update", "Not implemented", verbose: true
         end
-        def __draw (graphics)
+        # Bumper method that ensures draw is not called if the object
+        # is set to be removed.
+        def __draw (graphics=nil)
             return nil if @remove
+            graphics.start_group(@order) if graphics
             draw graphics
+            graphics.end_group(@order) if graphics
         end
         # Draw the object (picture or shape) using
         # the graphics from the canvas.
-        # @param tick [Numerical] is the milliseconds since the last
-        #                         game loop started.
-        def draw (graphics)
+        # === Attributes
+        # +
+        def draw (graphics=nil)
             $FRAME.log self, "draw", "Not implemented", verbose: true
         end
         def on_close
@@ -74,17 +115,15 @@ module Little
         end
     end
 
-    # Groups are for layering on the screen.
-    # Whatever is in the first group gets drawn first
-    # and so on. If a group is not listed when adding
+    # If a group is not listed when adding
     # objects to the scene, they will be added to a
     # :default group.
     class Group
         attr_accessor   :game
         attr_accessor   :scene
         attr_reader     :entities
-        attr_accessor   :order
         attr_accessor   :remove
+        attr_accessor   :order
         
         @@next_order = 0
         
@@ -98,8 +137,9 @@ module Little
             @order = @@next_order
             @@next_order += 1
         end
+        
         # Updates the objects in this group.
-        def update(tick)
+        def update(tick=nil)
             @entities.each {|i| i.__update(tick)}
             @entities.delete_if {|i| i.remove}
         end
@@ -107,16 +147,17 @@ module Little
         # @param graphics [Little::Graphics] graphics object
         # @param tick [Numerical] is the milliseconds since the last
         #                         game loop started.
-        def draw (graphics)
-            graphics.start_group(@order)
+        def draw (graphics=nil)
             @entities.each {|i| i.__draw(graphics)}
-            graphics.end_group(@order)
         end
 
         # Add a new object to this group.
         # @param value [Object] is the object to add.
         def push (value)
             value.group = self
+            if not value.order
+                value.order = @order
+            end
             @entities.push(value)
         end
         def each
@@ -169,12 +210,18 @@ module Little
         def initialize (game)
             @game = game
             default_group = Group.new game, self
-            default_group.order = Little::Graphics::DEFAULT_ORDER
+            #default_group.order = Little::Graphics::DEFAULT_ORDER
             @groups = {default: default_group}
             @request_mutex = Mutex.new
         end
+        
+        def load
+            @groups.each do |k,v|
+                v.each{|obj| obj.load}
+            end
+        end
         # Calls update on all the groups.
-        def update (tick)
+        def update (tick=nil)
           #@groups.each{|key, value| value.each{|i| i.__update(tick)}}
             threads = []
             @groups.each do |key, value|
@@ -194,11 +241,9 @@ module Little
         #                              which to draw.
         # @param tick [Float] is the milliseconds since the last
         #                         game loop started.
-        def draw (graphics)
+        def draw (graphics=nil)
           @groups.each do |key, value|
-            graphics.start_group(value.order)
             value.each{|i| i.__draw(graphics)}
-            graphics.end_group(value.order)
           end  
         end
         # Adds a new game object to the indicated group.
@@ -261,7 +306,7 @@ module Little
             # Ex: {Gosu::KB_W => :move_up}
         end
         # Sender is responsible for saving any needed arguments
-        def queue_request(sender, method)
+        def request(sender, method)
             @request_mutex.synchronize {
                 if not @request_queue
                     @request_queue = Hash.new
@@ -326,9 +371,9 @@ module Little
         @end_game = false
         @num_runs = 0
         @tick_counter = 0
-        @input = Little::Input.new(self)
-        @camera = Little::Camera.new(w,h)
-        @graphics = Little::Graphics.new(self,@camera)
+        @input = $INPUT ? Little::Input.new(self) : nil
+        @camera = $GRAPHICS ? Little::Camera.new(w,h) : nil
+        @graphics = $GRAPHICS ? Little::Graphics.new(self,@camera) : nil
         if $PERFORMANCE
           @@performance_log = Little::Performance.new
         end
@@ -364,6 +409,7 @@ module Little
           @newscene = nil
           @newscene_param = nil
           @input.connect(@scene) #connect to input manager
+          @scene.load
         end
         lasttick = @time
         @time = Gosu.milliseconds
@@ -378,7 +424,7 @@ module Little
               @num_runs = 0
             end
         end
-        handle_input
+        @input ? handle_input : nil
         @scene ? @scene.update(@tick / 100.0) : nil
         if $PERFORMANCE
           @@performance_log.inc(:runs)
@@ -386,8 +432,9 @@ module Little
       end
       def handle_input
         #check if there are hold down conditions in the scene
-        input.exe_running
-        while input.execute
+        @input.service_requests
+        @input.exe_running
+        while @input.execute
           #handling input
         end
       end
@@ -396,35 +443,43 @@ module Little
         @scene ? @scene.draw(@graphics) : nil
       end
       def button_down(id)
-        #used for one shots; save to input manager?
         #the input manager should call the proper method
         #in the scene for the id given
         #log self,"button","#{id}"
-        input.add(id)
-      end
-    def log (sender, method, message="test", options={})
-        @log_mutex.synchronize {
-            if $DEBUG
-                return nil if options[:verbose] and not $VERBOSE
-                time = Gosu.milliseconds
-                print "#{time}:#{sender.class.name}<#{sender.object_id}>:#{method}:#{message}\n"
-            end
-            if $LOG
-                @@debug_log.log sender,method,note
-            end
-            if options[:exit]
-                close
-            end
-        }
-    end
-      
-      def close
-        @scene.on_close if @scene
-        if $PERFORMANCE
-          @@performance_log.save
+        if @input
+            @input.add(id)
         end
-        close!
       end
+        # Prints a message to the screen.
+        # ==== Attributes
+        # * +sender+    - The object sending the message.
+        # * +method+    - A string or symbol representing the method from
+        #               which the message is sent.
+        # * +message+   - The message to print to screen.
+        # * +options+   - [verbose: Boolean, exit: Boolean]
+        def log (sender, method, message="test", options={})
+            @log_mutex.synchronize {
+                if $DEBUG
+                    return nil if options[:verbose] and not $VERBOSE
+                    time = Gosu.milliseconds
+                    print "#{time}:#{sender.class.name}<#{sender.object_id}>:#{method}:#{message}\n"
+                end
+                if $LOG
+                    @@debug_log.log sender,method,note
+                end
+                if options[:exit]
+                    close
+                end
+            }
+        end
+      
+        def close
+            @scene.on_close if @scene
+            if $PERFORMANCE
+                @@performance_log.save
+            end
+            close!
+        end
     end
 
 end
