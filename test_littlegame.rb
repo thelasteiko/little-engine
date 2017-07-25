@@ -9,6 +9,7 @@ class GameObject < Little::Object
 		super()
 		point.x = x
 		point.y = y
+		@order = -2
 	end
 end
 
@@ -25,6 +26,7 @@ class TestDraw < GameObject
 		path.push(90,10)
 		#path.each {|i| $FRAME.log self, "each", "#{i}"}
 		#game.camera.focus = self
+		@order = -1
 	end
 	def load
 		@image = path.to_img
@@ -39,7 +41,7 @@ class TestDraw < GameObject
 		#graphics.line(point, Little::Point.new(10,60))
 		#graphics.rect(50,50,point: point)
 		#graphics.pixels(path, color: Gosu::Color::BLUE)
-		$FRAME.log self, "draw", "#{point}"
+		#$FRAME.log self, "draw", "#{point}"
 		graphics.image(@image, point)
 	end
 end
@@ -62,15 +64,10 @@ class TestImage < GameObject
 	
 	def update (tick)
 		if not @focused
-			@game.camera.focus = self
+			#@game.camera.focus = self
 			@focused = true
 		end
 		@tick = tick
-		if point.y >= 225
-			@game.input.request(self, @scene, :change_order, args: 0)
-		else
-			@game.input.request(self, @scene, :change_order, args: 2)
-		end
 	end
 	
 	def draw (graphics)
@@ -88,13 +85,6 @@ class TestImage < GameObject
 		elsif c == 3
 			point.x += (@speed * @tick)
 		end
-	end
-	
-	def change_order (o)
-		#man = @scene.get_manager("layer")
-		#if man
-		#	man.set_order(:player, o)
-		#end
 	end
 end
 

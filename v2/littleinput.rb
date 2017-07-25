@@ -105,7 +105,7 @@ module Little
     def register (requester, sending_scene, code, method_sym, options={})
 		#return nil if sending_scene.class.name != @scene
 		sc = sending_scene.class.name
-		$FRAME.log self, "register", "Registering #{requester} to #{code}"
+		$FRAME.log self, "register", "Registering #{requester} to #{code}", verbose: true
 		if method_sym.is_a? String
 			method_sym = method_sym.to_sym
 		end
@@ -346,11 +346,11 @@ module Little
     #				to a button number. Optional
     private
     def call_method(command, code=nil)
-		$FRAME.log self, "execute", "Sending #{code} to #{@scene}"
+		#$FRAME.log self, "execute", "Sending #{code} to #{@scene}"
         c = code ? code : command.code
         ary = @single_map[c]
         if ary
-			$FRAME.log self, "execute", "Sending #{code} to #{@scene}"
+			#$FRAME.log self, "execute", "Sending #{code} to #{@scene}"
             ary.each do |lc| # check through each object registered to this code
 				if lc.scene == @scene
 					req = lc.requester

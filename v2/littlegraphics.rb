@@ -63,35 +63,82 @@ module Little
             return Little::Point.new(@x,@y,@z)
         end
         # Rotates the specified number of degrees around the given center
-        # in the x,z direction. Angles go clockwise
+        # in the x,y direction. Angles go counter-clockwise, a la unit circle
         def rotate (angle, center)
             return copy if angle == 0
+            radius = distance2D(center)
+            # my angle = arcsin(opp/hyp) or = arctan(opp/adj)
+            # x => adj
+            # y => opp
+            ma = Math.asin(@y/radius)
+            #puts "original angle: #{ma.radians_to_degrees}"
+            # angle of change
+            rad = angle.degrees_to_radians
+            #puts "transform angle: #{rad.radians_to_degrees}"
+            # rotate the original angle
+            da = ma+rad
+            #puts "difference angle: #{da.radians_to_degrees}"
+            # change x and z according to the rotated angle
+            rx = radius * Math.cos(da)
+            ry = radius * Math.sin(da)
+            return Little::Point.new(rx,ry,@z)
+        end
+        # Rotates the specified number of degrees around the given center
+        # in the x,z direction. Angles go counter-clockwise, a la unit circle
+        def turn (angle, center)
+            return copy if angle == 0
             radius = distance1Dx(center)
-            radians = angle.degrees_to_radians
-            # change x and z according to the angle
-            rx = radius * Math.cos(radians)
-            rz = radius * Math.sin(radians)
-            #TODO this isn't right
+            #puts "radius: #{radius}"
+            # my angle = arcsin(opp/hyp) or = arctan(opp/adj)
+            # x => adj
+            # z => opp
+            ma = Math.asin(@z/radius)
+            #puts "original angle: #{ma.radians_to_degrees}"
+            # angle of change
+            rad = angle.degrees_to_radians
+            #puts "transform angle: #{rad.radians_to_degrees}"
+            # rotate the original angle
+            da = ma+rad
+            #puts "difference angle: #{da.radians_to_degrees}"
+            # change x and z according to the rotated angle
+            rx = radius * Math.cos(da)
+            rz = radius * Math.sin(da)
+            #puts "result: #{rx}, #{rz}"
             return Little::Point.new(rx,@y,rz)
         end
         # Tilts the specified number of degrees around the given center
-        # in the y,z direction. Angle go back, up and around
+        # in the y,z direction. Angles go up, back and around
         def tilt (angle, center)
+            return copy if angle == 0
+            radius = distance1Dy(center)
+            # my angle = arcsin(opp/hyp) or = arctan(opp/adj)
+            # y => is y => opp
+            # z => is x => adj
+            ma = Math.asin(@y/radius)
+            # angle of change
+            rad = angle.degrees_to_radians
+            # rotate the original
+            da = ma+rad
+            # change y and z according to rotated angle
+            rz = radius * Math.cos(da)
+            ry = radius * Math.sin(da)
+            return Little::Point.new(@x,ry,rz)
         end
         # Uses all three dimensions to calculate distance.
         def distance3D (pt)
-            return Math.sqrt((@x - pt.x)**2 + (@y - pt.y)**2 + (@z - pt.z)**2)
+            Math.sqrt((@x - pt.x)**2 + (@y - pt.y)**2 + (@z - pt.z)**2)
         end
         # Calculates the 'flat' distance accross the canvas using x,y
         def distance2D (pt)
-            return Math.sqrt((@x-pt.x)**2 + (@y-pt.y)**2)
+            Math.sqrt((@x-pt.x)**2 + (@y-pt.y)**2)
         end
         # Calculates the conceptual depth distance using x,z
         def distance1Dx (pt)
-            return Math.sqrt((@x-pt.x)**2 + (@z-pt.z)**2)
+            Math.sqrt((@x-pt.x)**2 + (@z-pt.z)**2)
         end
+        # Calculates the conceptual depth distance using y,z
         def distance1Dy (pt)
-            return Math.sqrt((@y-pt.y)**2 + (@z-pt.z)**2)
+            Math.sqrt((@y-pt.y)**2 + (@z-pt.z)**2)
         end
         # Uses x,y as the center and z as the radius
         def to_circle(color=Gosu::Color::WHITE, filled=true)
@@ -269,9 +316,11 @@ module Little
         def x
             return point.x
         end
+        
         def y
             return point.y
         end
+        
         def z
             return point.z
         end
@@ -292,7 +341,7 @@ module Little
     # The shape just defines a rectangular bounds for an object.
     # The object is drawn at point and the amount of space it occupies
     # is defined by dimensions.
-    def Shape
+    class Shape
         include Little::Focusable
         
         HEAD_TOP_LEFT       = 0
@@ -334,23 +383,24 @@ module Little
         end
         # The center of the 3D shape.
         def center
-            return Little::Point.new (@point.x + width/2, @point.y-height/2,
+            Little::Point.new(@point.x + width/2, @point.y-height/2,
                     @point.z - depth/2)
         end
         # The center of the top/lid/head of the shape.
         def center_head
-            return Little::Point.new (@point.x + width/2, @point.y,
+            Little::Point.new(@point.x + width/2, @point.y,
                     @point.z - depth/2)
         end
         # The center of the bottom/feet of the shape.
         def center_feet
-            return Little::Point.new (@point.x + width/2, @point.y-height,
+            Little::Point.new(@point.x + width/2, @point.y-height,
                     @point.z - depth/2)
         end
         def inside? (*pt)
             if pt.size == 1
-                
+                nil
             elsif pt.size == 2
+                nil
             end
         end
         # Points go clockwise, from top to bottom, from back top left
@@ -358,27 +408,27 @@ module Little
             if pt == HEAD_TOP_LEFT
                 return @point.copy
             elsif pt == HEAD_TOP_RIGHT
-                return Little::Point.new (@point.x + width, @point.y,
+                return Little::Point.new(@point.x + width, @point.y,
                         @point.z)
             elsif pt == HEAD_BOTTOM_RIGHT
-                return Little::Point.new (@point.x + width, @point.y,
+                return Little::Point.new(@point.x + width, @point.y,
                         @point.z - depth)
             elsif pt == HEAD_BOTTOM_LEFT
-                return Little::Point.new (@point.x, @point.y,
+                return Little::Point.new(@point.x, @point.y,
                         @point.z - depth)
             elsif pt == FEET_TOP_LEFT
-                return Little::Point.new (@point.x, @point.y - height,
+                return Little::Point.new(@point.x, @point.y - height,
                         @point.z)
             elsif pt == FEET_TOP_RIGHT
-                return Little::Point.new (@point.x + width,
+                return Little::Point.new(@point.x + width,
                         @point.y - height,
                         @point.z)
             elsif pt == FEET_BOTTOM_RIGHT
-                return Little::Point.new (@point.x + width,
+                return Little::Point.new(@point.x + width,
                         @point.y - height,
                         @point.z - depth)
             elsif pt == FEET_BOTTOM_LEFT
-                return Little::Point.new (@point.x, @point.y - height,
+                return Little::Point.new(@point.x, @point.y - height,
                         @point.z - depth)
             end
         end
