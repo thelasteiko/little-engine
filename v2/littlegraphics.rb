@@ -31,12 +31,18 @@ module Little
             @y = y
             @z = z
         end
+        # Offset from the center of the anything, given its width, height
+        # and depth if applicable.
         def get_center_offset(width, height, depth=0.0)
             return Little::Point.new(@x-(width/2),@y-(height/2),@z-(depth))
         end
+        # Returns a new point with the provides point's attributes
+        # subtracted from this one's.
         def subtract(p)
             return Little::Point.new(@x-p.x,@y-p.y,@z-p.z)
         end
+        # Adds the provided point's attributes to this one's.
+        # Changes the original object.
         def add!(p)
             @x += p.x
             @y += p.y
@@ -59,50 +65,26 @@ module Little
         def > (pt)
             return (@x > pt.x and @y > pt.y)
         end
+        # Returns a new object with the same attributes.
         def copy
             return Little::Point.new(@x,@y,@z)
         end
         # Rotates the specified number of degrees around the given center
-        # in the x,y direction. Angles go counter-clockwise, a la unit circle
+        # in the x,y direction. Angles go clockwise, a la not unit circle
         def rotate (angle, center)
             return copy if angle == 0
-            radius = distance2D(center)
-            # my angle = arcsin(opp/hyp) or = arctan(opp/adj)
-            # x => adj
-            # y => opp
-            ma = Math.asin(@y/radius)
-            #puts "original angle: #{ma.radians_to_degrees}"
-            # angle of change
             rad = angle.degrees_to_radians
-            #puts "transform angle: #{rad.radians_to_degrees}"
-            # rotate the original angle
-            da = ma+rad
-            #puts "difference angle: #{da.radians_to_degrees}"
-            # change x and z according to the rotated angle
-            rx = radius * Math.cos(da)
-            ry = radius * Math.sin(da)
+            rx = @x*Math.cos(rad) - @y*Math.sin(rad)
+            ry = @x*Math.sin(rad) + @y*Math.cos(rad)
             return Little::Point.new(rx,ry,@z)
         end
         # Rotates the specified number of degrees around the given center
-        # in the x,z direction. Angles go counter-clockwise, a la unit circle
+        # in the x,z direction. Angles go clockwise, a la not unit circle
         def turn (angle, center)
             return copy if angle == 0
-            radius = distance1Dx(center)
-            #puts "radius: #{radius}"
-            # my angle = arcsin(opp/hyp) or = arctan(opp/adj)
-            # x => adj
-            # z => opp
-            ma = Math.asin(@z/radius)
-            #puts "original angle: #{ma.radians_to_degrees}"
-            # angle of change
             rad = angle.degrees_to_radians
-            #puts "transform angle: #{rad.radians_to_degrees}"
-            # rotate the original angle
-            da = ma+rad
-            #puts "difference angle: #{da.radians_to_degrees}"
-            # change x and z according to the rotated angle
-            rx = radius * Math.cos(da)
-            rz = radius * Math.sin(da)
+            rx = @x*Math.cos(rad) - @z*Math.sin(rad)
+            rz = @x*Math.sin(rad) + @z*Math.cos(rad)
             #puts "result: #{rx}, #{rz}"
             return Little::Point.new(rx,@y,rz)
         end
@@ -110,19 +92,30 @@ module Little
         # in the y,z direction. Angles go up, back and around
         def tilt (angle, center)
             return copy if angle == 0
-            radius = distance1Dy(center)
-            # my angle = arcsin(opp/hyp) or = arctan(opp/adj)
-            # y => is y => opp
-            # z => is x => adj
-            ma = Math.asin(@y/radius)
-            # angle of change
             rad = angle.degrees_to_radians
-            # rotate the original
-            da = ma+rad
-            # change y and z according to rotated angle
-            rz = radius * Math.cos(da)
-            ry = radius * Math.sin(da)
+            ry = @z*Math.cos(rad) - @y*Math.sin(rad)
+            rz = @z*Math.sin(rad) + @y*Math.cos(rad)
             return Little::Point.new(@x,ry,rz)
+        end
+        # Returns a copy of the point transformed according to the
+        # provided angles. Angles are in degrees.
+        # ==== Attributes
+        # +rotation_angle+   - The angle of rotation along the x,y plain.
+        # +turn_angle+  - The angle of rotation along the x,z plain.
+        # +center+  - The center point around which to transform.
+        def transform (rotation_angle, turn_angle, center)
+            return copy if rotation_angle == 0 and turn_angle == 0
+            radr = rotation_angle.degrees_to_radians
+            radtu = turn_angle.degrees_to_radians
+            
+            rx = @x*Math.cos(radr) - @y*Math.sin(radr)
+            ry = @x*Math.sin(radr) + @y*Math.cos(radr)
+            rz = @x*Math.sin(radtu) + @z*Math.cos(radtu)
+            #puts "result 1: #{rx}, #{ry}, #{rz}"
+            rx = rx*Math.cos(radtu) - @z*Math.sin(radtu)
+            ry = @z*Math.sin(radtu) + ry*Math.cos(radtu)
+            #puts "result 2: #{rx}, #{ry}, #{rz}"
+            return Little::Point.new(rx,ry,rz)
         end
         # Uses all three dimensions to calculate distance.
         def distance3D (pt)
@@ -497,6 +490,8 @@ module Little
                 p2.x,p2.y, color, ord)
         end
         # Creates a line between two points. Really buggy
+        # Use the :to_img option to create an image of the line.
+        # Saving the image rather than recreating it makes it non-buggy
         def line (point1, point2, options={})
             color = options[:color] ? options[:color] : Gosu::Color::WHITE
             ord = options[:order] ? options[:order] : @order
@@ -509,6 +504,9 @@ module Little
             center = path[0]
             if not options[:do_not_focus]
                 center = @camera.translate(center)
+            end
+            if options[:to_img]
+                return img
             end
             img.draw center.x, center.y, ord
         end
@@ -583,9 +581,21 @@ module Little
         end
         
         # Draws an image, rotate goes clockwise from north
+        # WARNING: if you use the rotate option and have an angle transformation
+        # set to the camera, it may not produce the result you are expecting.
         def image(image, point, options={})    # "relative rotation origin"
             color = options[:color] ? options[:color] : Gosu::Color::WHITE
-            ord = options[:order] ? options[:order] : @order
+            ord = point.z
+            if not options[:do_not_use_z]
+                ord = options[:order] ? options[:order] : @order
+            end
+            if options[:shape]
+                d = ord/options[:shape].depth
+                options[:scale] = Little::Point.new(d,d)
+            end
+            if not options[:scale]
+                options[:scale] = Little::Point.new(1,1)
+            end
             p = point
             #$FRAME.log self, "image", "Drawing at order #{options[:order]}"
             if not options[:do_not_focus]
@@ -593,16 +603,14 @@ module Little
             end
             #$FRAME.log self, "image", "4(#{p})"
             if options[:rotate_angle]
-                r = options[:rotate_center]
+                r = options[:rotate_center] ? options[:rotate_center] : Little::Point.new(0.5,0.5)
                 #draw_rot(x, y, z, angle, center_x = 0.5, center_y = 0.5, scale_x = 1, scale_y = 1, color = 0xff_ffffff, mode = :default
                 image.draw_rot(p.x,p.y, ord,
                     options[:rotate_angle],r.x,r.y,
                     options[:scale].x,options[:scale].y,
                     color)
-            elsif options[:scale]
-                image.draw(p.x,p.y,ord,options[:scale].x,options[:scale].y)
             else
-                image.draw(p.x,p.y,ord)
+                image.draw(p.x,p.y,ord,options[:scale].x,options[:scale].y)
             end
         end
         
@@ -635,7 +643,9 @@ module Little
                 rotate_angle:   0,
                 rotate_center:  Little::Point.new(0.5,0.5),
                 order:          @order,
-                to_img:         false
+                to_img:         false,
+                do_not_use_z:   false,
+                shape:          nil
             }
         end
         

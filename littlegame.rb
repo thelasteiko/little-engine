@@ -73,12 +73,10 @@ module Little
         attr_accessor   :group
         attr_accessor   :scene
         attr_accessor   :remove
-        attr_accessor   :order
         # Creates the object with all variables set to nil.
         def initialize
             $FRAME.log self, "init", "Object initialized.", verbose: true
             @remove = false
-            @order = nil
         end
         # Called after the objects are added to a group. Perform here any
         # initialization operations that require the game, scene or group.
