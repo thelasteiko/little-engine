@@ -1,5 +1,12 @@
 #!/usr/bin/env ruby
 
+# Little is a small and unassuming game engine based on Gosu.
+# All rights go to the Gosu people for the Gosu code.
+#
+# Author::      Melinda Robertson
+# Copyright::   Copyright (c) 2017 Little, LLC
+# License::     GNU
+
 require_relative '../littlegame.rb'
 
 module Little

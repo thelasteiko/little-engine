@@ -1,5 +1,12 @@
 #!/usr/bin/env ruby
 
+# Little is a small and unassuming game engine based on Gosu.
+# All rights go to the Gosu people for the Gosu code.
+#
+# Author::      Melinda Robertson
+# Copyright::   Copyright (c) 2017 Little, LLC
+# License::     GNU
+
 =begin
  Little::Point
     Simple x,y,z point representation. Adds comparison, subtraction and offset
@@ -13,6 +20,8 @@
     and draw order.
  Little::Camera
     Keeps the play area focused on one object.
+    
+    @see{https://www.math.utah.edu/~treiberg/Perspect/Perspect.htm}
 =end
 require 'gosu'
 require 'texplay'
@@ -27,9 +36,9 @@ module Little
         attr_accessor   :y
         attr_accessor   :z
         def initialize (x=0.0,y=0.0,z=0.0)
-            @x = x
-            @y = y
-            @z = z
+            @x = x.to_f
+            @y = y.to_f
+            @z = z.to_f
         end
         # Offset from the center of the anything, given its width, height
         # and depth if applicable.
@@ -76,6 +85,8 @@ module Little
             rad = angle.degrees_to_radians
             rx = @x*Math.cos(rad) - @y*Math.sin(rad)
             ry = @x*Math.sin(rad) + @y*Math.cos(rad)
+            rx += center.x
+            ry += center.y
             return Little::Point.new(rx,ry,@z)
         end
         # Rotates the specified number of degrees around the given center
@@ -85,6 +96,8 @@ module Little
             rad = angle.degrees_to_radians
             rx = @x*Math.cos(rad) - @z*Math.sin(rad)
             rz = @x*Math.sin(rad) + @z*Math.cos(rad)
+            rx += center.x
+            rz += center.z
             #puts "result: #{rx}, #{rz}"
             return Little::Point.new(rx,@y,rz)
         end
@@ -95,6 +108,8 @@ module Little
             rad = angle.degrees_to_radians
             ry = @z*Math.cos(rad) - @y*Math.sin(rad)
             rz = @z*Math.sin(rad) + @y*Math.cos(rad)
+            ry += center.y
+            rz += center.z
             return Little::Point.new(@x,ry,rz)
         end
         # Returns a copy of the point transformed according to the
@@ -114,6 +129,9 @@ module Little
             #puts "result 1: #{rx}, #{ry}, #{rz}"
             rx = rx*Math.cos(radtu) - @z*Math.sin(radtu)
             ry = @z*Math.sin(radtu) + ry*Math.cos(radtu)
+            rx += center.x
+            ry += center.y
+            rz += center.z
             #puts "result 2: #{rx}, #{ry}, #{rz}"
             return Little::Point.new(rx,ry,rz)
         end
@@ -351,9 +369,14 @@ module Little
         attr_accessor   :angle
         attr_accessor   :rotation
         
-        def initialize (x=0, y=0, z=0, w=0, h=0, d=0)
-            @point = Little::Point.new(x,y,z)
-            @dimensions = Little::Point.new(w,h,d)
+        def initialize (*args)#x=0, y=0, z=0, w=0, h=0, d=0)
+            if args.size == 2
+                @point = args[0]
+                @dimensions = args[1]
+            elsif args.size == 6
+                @point = Little::Point.new(args[0],args[1],args[2])
+                @dimensions = Little::Point.new(args[3],args[4],args[5])
+            end
             @angle = 90.0
             @rotation = 0.0
         end
@@ -368,7 +391,7 @@ module Little
             return @dimensions.z
         end
         def dim?
-            if @dimensions.z == 0
+            if @dimensions.z == nil
                 return 2
             else
                 return 3
@@ -458,7 +481,7 @@ module Little
     
     class Graphics
         
-        DEFAULT_ORDER = 0
+        DEFAULT_ORDER       = 0
         
         def initialize (game, camera)
             @game = game
@@ -481,7 +504,7 @@ module Little
             ord = options[:order] ? options[:order] : @order
             p1 = point1
             p2 = point2
-            set_default(options)
+            #set_default(options)
             if not options[:do_not_focus]
                 p1 = @camera.translate(p1)
                 p2 = @camera.translate(p2)
@@ -586,11 +609,25 @@ module Little
         def image(image, point, options={})    # "relative rotation origin"
             color = options[:color] ? options[:color] : Gosu::Color::WHITE
             ord = point.z
-            if not options[:do_not_use_z]
+            #$FRAME.log self, "image", "Z: #{point.z}"
+            if options[:do_not_use_z]
                 ord = options[:order] ? options[:order] : @order
             end
-            if options[:shape]
-                d = ord/options[:shape].depth
+            #TODO better way to do scaling?
+            if options[:shape] and options[:scale_on_shape]
+                dp = options[:shape].depth.to_f
+                z = (ord.to_f + 1.0)
+                d = 1.0
+                if z < -2.0
+                    z = (z / dp).abs + 2.0
+                    # need it to be between 0 and 1
+                    # I need to invert the z point
+                    d = 1.0 / Math.log2(z)
+                    #$FRAME.log self, "image", "<0: #{d}=1.0/#{Math.log2(z)}[#{(z)}]"
+                elsif z > dp
+                    d = z / dp
+                    #$FRAME.log self, "image", ">0: #{d}=#{ord+1.0}/#{dp}"
+                end
                 options[:scale] = Little::Point.new(d,d)
             end
             if not options[:scale]
@@ -610,24 +647,28 @@ module Little
                     options[:scale].x,options[:scale].y,
                     color)
             else
+                #$FRAME.log self, "image", "#{p},#{ord},#{options[:scale]}"
                 image.draw(p.x,p.y,ord,options[:scale].x,options[:scale].y)
             end
         end
         
         def text (string, font, point, options={})
-            set_default(options)
+            color = options[:color] ? options[:color] : Gosu::Color::WHITE
+            #alignment = options[:alignment] ? options[:alignment] : Little::Point.new(0.5,0.5)
+            scale = options[:scale] ? options[:scale] : Little::Point.new(1,1)
+            ord = options[:order] ? options[:order] : @order
             p = point
             if not options[:do_not_focus]
                 p = @camera.translate(point)
             end
             if options[:alignment]
-               font.draw_rel(string, p.x, p.y, options[:order],
+               font.draw_rel(string, p.x, p.y, ord,
                     options[:alignment].x, options[:alignment].y,
-                    options[:scale].x, options[:scale].y,
+                    scale.x, scale.y,
                     options[:color])
             else
-                font.draw(string, p.x, p.y, options[:order],
-                    options[:scale].x, options[:scale].y,
+                font.draw(string, p.x, p.y, ord,
+                    scale.x, scale.y,
                     options[:color])
             end
         end
@@ -645,7 +686,8 @@ module Little
                 order:          @order,
                 to_img:         false,
                 do_not_use_z:   false,
-                shape:          nil
+                shape:          nil,
+                scale_on_shape: false
             }
         end
         
