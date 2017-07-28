@@ -3,15 +3,15 @@
 # Little is a small and unassuming game engine based on Gosu.
 # All rights go to the Gosu people for the Gosu code.
 #
-# Author::      Melinda Robertson
-# Copyright::   Copyright (c) 2017 Little, LLC
-# License::     GNU
+# @author      Melinda Robertson
+# @copyright   Copyright (c) 2017 Little, LLC
+# @license     GNU
 
 require 'gosu'
 
 
-# @see{ https://github.com/gosu/gosu/wiki/Getting-Started-on-Linux }
-# @see{ http://www.rubydoc.info/github/gosu/gosu/Gosu }
+# @see https://github.com/gosu/gosu/wiki/Getting-Started-on-Linux
+# @see http://www.rubydoc.info/github/gosu/gosu/Gosu
 
 #Set this to true to display the debug information.
 $DEBUG = true
@@ -28,12 +28,12 @@ $GRAPHICS = true
 $AUDIO = true
 
 # Prints an error and closes the application if the error is critical.
-# ==== Attributes
-# * +exception+ - The exception thrown.
-# * +explicit+  - True means a particular and expected exception was thrown.
+#
+# @param +exception+ - The exception thrown.
+# @param +explicit+  - True means a particular and expected exception was thrown.
 #                   False means an exception was thrown but we don't know
 #                   what kind.
-# * +critical+  - The program won't continue if this is true.
+# @param +critical+  - The program won't continue if this is true.
 def print_exception(exception, explicit, critical=false)
     puts "[#{explicit ? 'EXPLICIT' : 'INEXPLICIT'}] #{exception.class}: #{exception.message}"
     puts exception.backtrace.join("\n")
@@ -67,7 +67,7 @@ rescue Exception => e
     print_exception(e, false)
 end
 
-# * The Little module is used as a namespace for all the things.
+# The Little module is used as a namespace for all the things.
 module Little
 
     # Game objects do all the heavy lifting in the game.
@@ -76,16 +76,22 @@ module Little
     # game object doing it.
     # To use the game object, overwrite the load, update and draw functions.
     class Object
-        # The Little::Game object for this game.
+        # @!attribute [rw] game
+        #   @return [Little::Game] object for this game.
         attr_accessor   :game
-        # The Little::Group this object belongs to. It is set to
-        # :default if no group is specified when the object is
-        # added to the scene.
+        # @!attribute [rw] group
+        #   @return [Little::Group] group this object belongs to
+        #   It is set to :default if no group is specified when the object is
+        #   added to the scene.
         attr_accessor   :group
-        # The Little::Scene this object belongs to.
+        # @!attribute [rw] scene
+        #   @return [Little::Scene] scene this object belongs to.
         attr_accessor   :scene
-        # A flag that tells the group to remove this object on update.
+        # @!attribute [rw] remove
+        #   @return [Boolean]   A flag that tells the group to remove
+        #   this object on update.
         attr_accessor   :remove
+        
         # Creates the object with all variables set to nil or false.
         def initialize
             $FRAME.log self, "init", "Object initialized.", verbose: true
@@ -98,38 +104,54 @@ module Little
         end
         # Bumper method that ensures update is not called if the object
         # is set to be removed.
-        # ==== Attributes
-        # * +tick+  - The seconds between this update and the last.
+        #
+        # @param tick [Number] The seconds between this update and the last.
         #               Normally 0.0 < tick < 1.0
         def __update(tick)
             return nil if @remove
             update tick
         end
         # Update variables (hint: position) here.
-        # * +tick+  - The seconds between this update and the last.
-        #               Normally 0.0 < tick < 1.0        
+        #
+        # @param tick [Number] The seconds between this update and the last.
+        #               Normally 0.0 < tick < 1.0
         def update (tick)
             $FRAME.log self, "update", "Not implemented", verbose: true
         end
-        # Bumper method that ensures draw is not called if the object
-        # is set to be removed.
-        # ==== Attributes
-        # * +graphics+  -The Little::Graphics object that adds some
-        #                   functionality to the standard Gosu draw
-        #                   methods. Can be nil.
-        def __draw (graphics=nil)
-            return nil if @remove
-            draw graphics
+        
+        if $GRAPHICS
+            # Bumper method that ensures draw is not called if the object
+            # is set to be removed.
+            #
+            # @param graphics [Little::Graphics] object that adds some
+            #                   functionality to the standard Gosu draw
+            #                   methods. Can be nil.
+            def __draw (graphics=nil)
+                return nil if @remove
+                draw graphics
+            end
+            # Draw the object (picture or shape) using
+            # the graphics from the canvas.
+            #
+            # @param graphics [Little::Graphics] object that adds some
+            #                   functionality to the standard Gosu draw
+            #                   methods. Can be nil.
+            def draw (graphics=nil)
+                $FRAME.log self, "draw", "Not implemented", verbose: true
+            end
+        else
+            # Bumper method that ensures draw is not called if the object
+            # is set to be removed.
+            def __draw
+                return nil if @remove
+                draw
+            end
+            # Draw the object (picture or shape) using straight Gosu.
+            def draw
+                $FRAME.log self, "draw", "Not implemented", verbose: true
+            end
         end
-        # Draw the object (picture or shape) using
-        # the graphics from the canvas.
-        # ==== Attributes
-        # * +graphics+  -The Little::Graphics object that adds some
-        #                   functionality to the standard Gosu draw
-        #                   methods. Can be nil.
-        def draw (graphics=nil)
-            $FRAME.log self, "draw", "Not implemented", verbose: true
-        end
+
         # Performs any clean-up operations when the scene or game closes.
         def on_close
             $FRAME.log self, "on_close", "Not implemented", verbose: true
@@ -141,21 +163,30 @@ module Little
     # objects to the scene, they will be added to a
     # :default group.
     class Group
-        # The Little::Game object for this game.
+        # @!attribute [rw] game
+        #   @return [Little::Game] object for this game.
         attr_accessor   :game
-        # The Little::Scene this object belongs to.
+        # @!attribute [rw] scene
+        #   @return [Little::Scene] scene this object belongs to.
         attr_accessor   :scene
-        # The list of Little::Objects.
+        # @!attribute [r] entities
+        #   @return [Array]  The list of Little::Objects.
         attr_reader     :entities
-        # A flag that tells the scene to remove this group on update.
+        # @!attribute [rw] remove
+        #   @return [Boolean] A flag that tells the scene to remove
+        #   this group on update.
         attr_accessor   :remove
-        # The default drawing order for the objects in this group.
+        # @!attribute [rw] order
+        #   @return [Fixnum] The default drawing order for the objects
+        #   in this group.
         attr_accessor   :order
+        
         # Counter for the order.
         @@next_order = 0
         
-        # Creates the group.
-        # @param scene [Scene] is the scene this group belongs to.
+        # Creates the group. The entities array is created here.
+        # @param game   [Little::Game] is the game object.
+        # @param scene  [Little::Scene] is the scene this group belongs to.
         def initialize (game, scene)
             @game = game
             @entities = []
@@ -166,73 +197,97 @@ module Little
         end
         
         # Updates the objects in this group.
-        # ==== Attributes
-        # * +tick+  - The seconds between this update and the last.
-        #               Normally 0.0 < tick < 1.0    
+        #
+        # @param tick [Number] The seconds between this update and the last.
+        #               Normally 0.0 < tick < 1.0   
         def update(tick=nil)
             @entities.each {|i| i.__update(tick)}
             @entities.delete_if {|i| i.remove}
         end
-        # Tells the objects in this group to draw.
-        # ==== Attributes
-        # * +graphics+  -The Little::Graphics object that adds some
-        #                   functionality to the standard Gosu draw
-        #                   methods. Can be nil.
-        def draw (graphics=nil)
-            graphics.start_group(@order) if graphics
-            @entities.each {|i| i.__draw(graphics)}
-            graphics.end_group(@order) if graphics
+        
+        if $GRAPHICS
+            # Tells the objects in this group to draw.
+            #
+            # @param graphics [Little::Graphics] object that adds some
+            #                   functionality to the standard Gosu draw
+            #                   methods. Can be nil.
+            def draw (graphics=nil)
+                graphics.start_group(@order) if graphics
+                @entities.each {|i| i.__draw(graphics)}
+                graphics.end_group(@order) if graphics
+            end
+        
+        else
+            # Tells the objects in this group to draw.
+            def draw
+                @entities.each {|i| i.__draw}
+            end
         end
 
-        # Add a new object to this group.
-        # ==== Attributes
-        # * +value+ - The Little::Object to add to this group.
+        # Add a new object to this group. Also sets the group attribute
+        # of the object.
+        #
+        # @param obj    [Little::Object] object to add to this group.
         #               This sets the object's group attribute to
         #               this group object.
-        def push (value)
-            value.group = self
-            @entities.push(value)
+        def push (obj)
+            obj.group = self
+            @entities.push(obj)
         end
         # Iterates through each object and does something according
         # to a given block.
+        # For a block {|i| ... }
+        # @yield [i]    Gives each object in this group to the block.
         def each
             @entities.each {|i| yield (i)}
         end
         # Retrieve one of the objects in the group.
-        # ==== Attributes
-        # * +value+ - The index of the object.
-        def [] (value)
-          return @entities[value]
+        #
+        # @param i  [Fixnum] The index of the object.
+        def [] (i)
+          return @entities[i]
         end
         # Deletes an object by reference.
-        # ==== Attributes
-        # * +value+ - The Little::Object to delete.
-        def delete (value)
-            @entities.delete(value)
+        #
+        # @param obj    [Little::Object] object to delete.
+        def delete (obj)
+            @entities.delete(obj)
         end
         # Deletes an object by index.
-        # ==== Attributes
-        # * +value+ - The index of the Little::Object to delete.
-        def delete_at(value)
-            @entities.delete_at(value)
+        #
+        # @param i  [Fixnum] The index of the object.
+        def delete_at(i)
+            @entities.delete_at(i)
         end
-        # Returns true if the object is in this group.
-        # ==== Attributes
-        # * +object+    - The Littel::Object to check for.
-        def include?(object)
-            return false if not object.is_a? Little::Object
-            object.group == self
+        # Returns true if the object's group attribute is this
+        # group and the object is a Little::Object. Faster than
+        # index.
+        #
+        # @see #index
+        #
+        # @param obj    [Little::Object] object to check for.
+        def include?(obj)
+            return false if not obj.is_a? Little::Object
+            obj.group == self
         end
-        
-        def index(value)
-          @entities.index(value)
+        # Retrieves the index of an object. This has a different searching
+        # behaviour from include?
+        #
+        # @see #include?
+        #
+        # @param obj    [Little::Object] object to search for.
+        def index(obj)
+          @entities.index(obj)
         end
+        # The number of objects in the group.
         def size
           @entities.size
         end
+        # Returns true if there are no objects in this group.
         def empty?
             return @entities.empty?
         end
+        # Performs any clean-up operations when the scene or game closes.
         def on_close
             @entities.each {|i| i.on_close}
         end
@@ -248,12 +303,20 @@ module Little
     # The scene is generally the object that should be
     # overwritten to create custom levels.
     class Scene
+        # @!attribute [rw] game
+        #   @return [Little::Game] object for this game.
         attr_reader     :game
-        attr_reader     :input_map
+        if $INPUT
+            # The optional Hash that the Little::Input object can
+            # use to map scene methods to user input.
+            # Generally KEY_CODE => :symbol_of_method_name
+            attr_reader     :input_map
+        end
 
         # Initializes the scene by setting up variables
         # and adding starting groups.
-        # @param game [Little::Game] is the game object owner.
+        #
+        # @param +game+  - The Little::Game object for this game.
         def initialize (game)
             @game = game
             default_group = Group.new game, self
@@ -261,13 +324,21 @@ module Little
             @groups = {default: default_group}
             @request_mutex = Mutex.new
         end
-        
+        # Calls load for all object after the scene has been fully
+        # initialized.
         def load
             @groups.each do |k,v|
                 v.each{|obj| obj.load}
             end
         end
-        # Calls update on all the groups.
+        
+        # Calls update on all the groups. A thread is created for
+        # each group and the main process will wait until all threads
+        # finish. After they are done the scene will process any requests
+        # from objects and then delete any objects that are tagged for
+        # removal.
+        # @param +tick+  - The seconds between this update and the last.
+        #               Normally 0.0 < tick < 1.0    
         def update (tick=nil)
           #@groups.each{|key, value| value.each{|i| i.__update(tick)}}
             threads = []
@@ -281,28 +352,38 @@ module Little
             process_requests
           @groups.delete_if{|key,value| value.remove}
         end
-        # Calls draw on all the groups.
-        # If a particular layering scheme needs to be
-        # used, overwrite this.
-        # @param graphics [Little::Graphics] is the graphics object with
-        #                              which to draw.
-        # @param tick [Float] is the milliseconds since the last
-        #                         game loop started.
-        def draw (graphics=nil)
-          @groups.each do |key, value|
-            graphics.start_group(value.order) if graphics
-            value.each{|i| i.__draw(graphics)}
-            graphics.end_group(value.order) if graphics
-          end  
+        if $GRAPHICS
+            # Calls draw on all the groups.
+            #
+            # @param +graphics+  - The Little::Graphics object that adds some
+            #                   functionality to the standard Gosu draw
+            #                   methods. Can be nil.
+            def draw (graphics=nil)
+              @groups.each do |key, value|
+                graphics.start_group(value.order) if graphics
+                value.each{|i| i.__draw(graphics)}
+                graphics.end_group(value.order) if graphics
+              end  
+            end
+        else
+            # Calls draw on all the groups.
+            def draw
+              @groups.each do |key, value|
+                value.each{|i| i.__draw}
+              end  
+            end
         end
         # Adds a new game object to the indicated group.
         # If the group doesn't exist, it adds a new group.
-        # If the group is nil, it adds the value to the :default group.
-        # @param group [Group] is the group to add the object to. Use a symbol.
-        # @param value [GameObject] is the object to add.
-        def push (value,group=nil)
-            value.game = @game
-            value.scene = self
+        # If the group is nil, it adds the object to the :default group.
+        # This also sets the game and scene attributes of the object.
+        #
+        # @param +obj+   - The Little::Object to add to the scene.
+        # @param +group+ - Optional, the symbol of the group to add the
+        #               object to.
+        def push (obj,group=nil)
+            obj.game = @game
+            obj.scene = self
           g = group
           if !group
             g = :default
@@ -311,50 +392,63 @@ module Little
               @groups[g] = Group.new @game, self
           end
           #value.group = @groups[g]
-          @groups[g].push(value)
+          @groups[g].push(obj)
         end
         # Removes the indicated game object from the scene.
-        # @param group [Group] is the group the object belongs to.
-        # @param value [Fixnum] is the index of the object to remove.
-        def delete_at (value, group=nil)
+        #
+        # @param +i+     - The index of the object.
+        # @param +group+ - The symbol of the group to delete from. If this
+        #               is not provided, the scene will attempt to delete
+        #               from the :default group.
+        def delete_at (i, group=nil)
           if (group)
-            @groups[group].delete_at(value)
+            @groups[group].delete_at(i)
           else
-            @groups[:default].delete_at(value)
+            @groups[:default].delete_at(i)
           end
         end
-        # Removes a game object from the scene.
-        # @param value [GameObject] is the object to remove.
-        # @return true if the object was removed,
-        #         false otherwise.
-        def delete(value, group=nil)
+        
+        # Removes a game object from the scene. If the group symbol
+        # is provided, returns the object deleted or nil if it can't
+        # be found.
+        #
+        # @param +obj+   - The object to delete.
+        # @param +group+ - If the group symbol is provided, the scene will
+        #               attempt to delete the object from the specified
+        #               group. Otherwise it will attempt to delete from
+        #               all groups.
+        def delete(obj, group=nil)
           if group and @groups[group]
-            @groups[group].delete(value)
+            return @groups[group].delete(obj)
           end
           @groups.each do |i|
-            i.delete(value)
+            i.delete(obj)
           end
         end
-        
-        def [] (index)
-          @groups[:default][index]
+        # Alias for at(i)
+        #
+        # @param +i+ - The index of the object in the :default group.
+        def [] (i)
+          @groups[:default][i]
+        end
+        # Retrieves an object in the :default group according to index.
+        #
+        # @param +i+ - The index of the object in the :default group.
+        def at(i)
+          @groups[:default][i]
         end
         
-        def at(index)
-          @groups[:default][index]
-        end
-        
-        # The input map that relates input events to method names.
-        # @return [Hash] of type [Numerical, Symbol] where events are
-        #                registered as numbers (the input code) and
-        #                responses are symbols representing method names.
-        def input_map
-            #lists method calls for holding down a button
-            @input_map ||= {Little::Input::HOLD => {}}
-            # the hold hash should have key codes mapped to symbols
-            # Ex: {Gosu::KB_W => :move_up}
-        end
-        # Sender is responsible for saving any needed arguments
+        # Queues a request from a Little::Object. The method is called
+        # on the sender after all threads return during update. This
+        # allows an object to affect another object outside its group
+        # in a thread-safe manner. Each method queued should return true
+        # or false. If it returns true it will be deleted from the queue,
+        # false indicates the method failed and needs to be called again.
+        #
+        # @param +sender+    - The object whose method will be called.
+        # @param +method+    - The symbolized name of the method to be called.
+        # ==== Example
+        # @scene.request(self, :move_player)
         def request(sender, method)
             @request_mutex.synchronize {
                 if not @request_queue
@@ -363,16 +457,18 @@ module Little
                 @request_queue[sender] = method
             }
         end
-        # Does clean up when the program closes.
+        # Does clean up when the program or scene closes.
         def on_close
             @groups.each {|k,v| v.on_close}
         end
+        # Retrieves a list of the group symbols.
         def group_keys
             return @groups.keys
         end
-        
+        # Short summary of the scene. Returns a string indicating
+        # the class name, object id, and number of groups.
         def to_s
-            return "Little::Scene<#{self.object_id}>=#{@groups.size}"
+            return "Little::Scene::#{self.class.name}<#{self.object_id}>=#{@groups.size}"
         end
         # Processes requests made during the multi-threaded update.
         private
@@ -406,7 +502,7 @@ module Little
         # Creates the game and the variables needed
         # to time the loop correctly.
         # The first scene created should not need parameters.
-        # ==== Attributes
+        #
         # +newscene+ - The class name of the scene to instantiate first.
       def initialize(w, h, c="Test", newscene=nil)
         super(w,h)
@@ -434,7 +530,7 @@ module Little
       # Sets the new scene to be updated on the
       # next run of the loop.
       # @param scene [Scene] is the new scene.
-      # ==== Attributes
+      #
       # +scene+ All scenes should be passed by class name.
       # +scene_param+ - Parameters to be passed to the new scene on instantiation.
       def changescene (scene, scene_param=nil)
@@ -489,7 +585,11 @@ module Little
       end
       def draw
         #print "Test"
-        @scene ? @scene.draw(@graphics) : nil
+        if $GRAPHICS
+            @scene ? @scene.draw(@graphics) : nil
+        else
+            @scene ? @scene.draw : nil
+        end
       end
       def button_down(id)
         #the input manager should call the proper method
@@ -500,12 +600,12 @@ module Little
         end
       end
         # Prints a message to the screen.
-        # ==== Attributes
-        # * +sender+    - The object sending the message.
-        # * +method+    - A string or symbol representing the method from
+        #
+        # @param +sender+    - The object sending the message.
+        # @param +method+    - A string or symbol representing the method from
         #               which the message is sent.
-        # * +message+   - The message to print to screen.
-        # * +options+   - [verbose: Boolean, exit: Boolean]
+        # @param +message+   - The message to print to screen.
+        # @param +options+   - [verbose: Boolean, exit: Boolean]
         def log (sender, method, message="test", options={})
             @log_mutex.synchronize {
                 if $DEBUG

@@ -3,9 +3,9 @@
 # Little is a small and unassuming game engine based on Gosu.
 # All rights go to the Gosu people for the Gosu code.
 #
-# Author::      Melinda Robertson
-# Copyright::   Copyright (c) 2017 Little, LLC
-# License::     GNU
+# @author      Melinda Robertson
+# @copyright   Copyright (c) 2017 Little, LLC
+# @license     GNU
 
 =begin
  Little::Point
@@ -21,7 +21,7 @@
  Little::Camera
     Keeps the play area focused on one object.
     
-    @see{https://www.math.utah.edu/~treiberg/Perspect/Perspect.htm}
+    @see https://www.math.utah.edu/~treiberg/Perspect/Perspect.htm
 =end
 require 'gosu'
 require 'texplay'
@@ -30,6 +30,8 @@ require 'chipmunk'
 module Little
 
     # Describes a point in a 3D plain.
+    # TODO would it be better to include Focusable here?
+    #   and then take out x,y,z and get_center_offset
     class Point
         
         attr_accessor   :x
@@ -114,10 +116,12 @@ module Little
         end
         # Returns a copy of the point transformed according to the
         # provided angles. Angles are in degrees.
-        # ==== Attributes
+        #
         # +rotation_angle+   - The angle of rotation along the x,y plain.
         # +turn_angle+  - The angle of rotation along the x,z plain.
         # +center+  - The center point around which to transform.
+        #
+        # @return [Little::Point] The transformed point.
         def transform (rotation_angle, turn_angle, center)
             return copy if rotation_angle == 0 and turn_angle == 0
             radr = rotation_angle.degrees_to_radians
@@ -132,6 +136,8 @@ module Little
             rx += center.x
             ry += center.y
             rz += center.z
+            
+            
             #puts "result 2: #{rx}, #{ry}, #{rz}"
             return Little::Point.new(rx,ry,rz)
         end
@@ -140,8 +146,14 @@ module Little
             Math.sqrt((@x - pt.x)**2 + (@y - pt.y)**2 + (@z - pt.z)**2)
         end
         # Calculates the 'flat' distance accross the canvas using x,y
-        def distance2D (pt)
+        def distance_xy (pt)
             Math.sqrt((@x-pt.x)**2 + (@y-pt.y)**2)
+        end
+        def distance_zy (pt)
+            Math.sqrt((@z-pt.z)**2 + (@y-pt.y)**2)
+        end
+        def distance_xz (pt)
+            Math.sqrt((@x-pt.x)**2 + (@z-pt.z)**2)
         end
         # Calculates the conceptual depth distance using x,z
         def distance1Dx (pt)
@@ -335,6 +347,9 @@ module Little
         def z
             return point.z
         end
+        def get_center_offset(width, height, depth=0.0)
+            return point.get_center_offset(width,height,depth)
+        end
     end
     
     module Traceable
@@ -366,19 +381,66 @@ module Little
         
         # Width, height, depth
         attr_accessor   :dimensions
-        attr_accessor   :angle
-        attr_accessor   :rotation
+        # rotation, turn, tilt
+        attr_reader     :local_angles
+        # @!attribute [r] local_point
+        #   @return [Little::Point] The location of this object relative
+        #   to the local rotation, turn and tilt. Set when set_local_transform
+        #   is called.
+        #   @see #set_local_transform
+        attr_reader     :local_point
         
         def initialize (*args)#x=0, y=0, z=0, w=0, h=0, d=0)
-            if args.size == 2
+            @local_angles = Little::Point.new
+            @view_angles = Little::Point.new
+            if args.size == 0
+                point
+                @dimensions = Little::Point.new
+            elsif args.size == 2
                 @point = args[0]
                 @dimensions = args[1]
+            elsif args.size == 4
+                @point = args[0]
+                @dimensions = args[1]
+                set_local_transform(args[2],args[3])
             elsif args.size == 6
                 @point = Little::Point.new(args[0],args[1],args[2])
                 @dimensions = Little::Point.new(args[3],args[4],args[5])
+            elsif args.size == 8
+                @point = Little::Point.new(args[0],args[1],args[2])
+                @dimensions = Little::Point.new(args[3],args[4],args[5])
             end
-            @angle = 90.0
-            @rotation = 0.0
+            @local_point = @point
+        end
+        # Sets the local rotation, turn and tilt, causing the local
+        # point of this object to change. This will also reset the
+        # view angles to 0.0 so call set_view_angles to readjust them.
+        #
+        # @see #set_view_angles
+        #
+        # @param roa [Number] the rotation angle in degrees
+        # @param tua [Number] the turn angle in degrees
+        def set_local_transform(roa, tua)
+            @local_angles.x = roa
+            @local_angles.y = tua
+            c = Little::Point.new
+            p = Little::Point.new(1.0,0.0,0.0).turn(tua,c).rotate(roa,c)
+            d = p.distance_xz(c)#Math.sqrt((p.x-c.x)**2 + (p.z-c.z)**2)
+            @local_angles.z = Math.acos(d).radians_to_degrees
+            @local_point = @point.transform(@local_angles.x,@local_angles.y,center)
+            @view_angles = @local_angles
+        end
+        # Sets the angle that the camera is viewing the shape from, based
+        # on the given angles and the local angles.
+        #
+        # @see #set_local_transform
+        #
+        # @param roa [Number] the rotation angle of the camera in degrees
+        # @param tua [Number] the turn angle of the camera in degrees
+        # @param tia [Number] the tilt angle of the camera in degrees
+        def set_view_angles (roa,tua,tia)
+            @view_angles = Little::Point.new(@local_angles.x+roa,
+                @local_angles.y+tua,@local_angles.z+tia)
         end
         
         def width
@@ -391,12 +453,13 @@ module Little
             return @dimensions.z
         end
         def dim?
-            if @dimensions.z == nil
+            if @dimensions.z == 0
                 return 2
             else
                 return 3
             end
         end
+
         # The center of the 3D shape.
         def center
             Little::Point.new(@point.x + width/2, @point.y-height/2,
@@ -448,10 +511,23 @@ module Little
                         @point.z - depth)
             end
         end
+        def copy
+            s = Little::Shape.new(@point,@dimensions)
+            s.set_local_transform(@local_rotate,@local_turn)
+            return s
+        end
+        # Return a shape that has the given transformations from this shape.
+        # rotation, turn, center
+        def translated (roa, tua, center)
+            s = Little::Shape.new(@point.transform(roa,tua,center),
+                @dimensions.copy)
+            s.set_local_transform(@local_angles.x,@local_angles.y)
+            return s
+        end
     end
     module Shapeable
         def shape
-            @shape ||= Little::Shape.new
+            @shape ||= Little::Shape.new()
         end
         
         def width
@@ -708,14 +784,17 @@ module Little
     
     # Keeps the graphics object focused on a particular game object,
     # that is kept at the center of the game window,
-    # so long as the object includes the Focusable module, or responds
-    # to point and point.x and point.y
+    # so long as the object includes the methods in the Focusable module.
     class Camera
         # @!attribute [rw] focus
-        #   @return [Little::Object] the object to focus on
-        attr_accessor   :focus
+        #   @return [Little::Focusable] the object to focus on
+        attr_reader     :focus
         attr_reader     :width
         attr_reader     :height
+        attr_accessor   :distance_from_plane
+        attr_reader     :view_angles
+        attr_accessor   :changed
+        
         # Initializes a camera with a set width and height for the screen.
         # @param width [Fixnum] the width of the window
         # @param height [Fixnum] the height of the window
@@ -723,13 +802,21 @@ module Little
             @focus = nil
             @width = width
             @height = height
+            @distance_from_plane = 1.0
+            @view_angles = Little::Point.new
+            @changed = false
+        end
+        
+        def focus=(obj)
+            @focus = obj
+            @changed = true
         end
         
         def translate (point)
             #$FRAME.log self, "translate", "1(#{point})"
-            if @focus and @focus.point and not @focus.remove
+            if @focus and not @focus.remove
                 #focus is at the center
-                offset = @focus.point.get_center_offset(@width, @height)
+                offset = @focus.get_center_offset(@width, @height)
                 #print "2(#{offset.x},#{offset.y})\n"
             else
                 offset = Little::Point.new
@@ -749,6 +836,46 @@ module Little
                 a.push translate(p)
             end
             return a
+        end
+        # Returns a translated shape according to angles around the focus.
+        def transform_shape (shape)
+            return shape.translated(@view_angles.x,@view_angles.y,@focus)
+        end
+        # Sets tilt and turn and changes the rotation angle
+        # accordingly. x,z and z,y
+        #
+        def tilt_turn (tia,tua)
+            @view_angles.z = tia
+            @view_angles.y = tua
+            c = Little::Point.new
+            p = Little::Point.new(1.0,0.0,0.0).tilt(tia,c).turn(tua,c)
+            # r = Math.acos(a/h)
+            d = p.distance_xy(c)
+            @view_angles.x = Math.acos(d).radians_to_degrees
+            #puts "#{p} => #{d} => #{r.radians_to_degrees}"
+            @changed = true
+        end
+        # z,y and x,y
+        def turn_rotate (tua,roa)
+            @view_angles.y = tua
+            @view_angles.x = roa
+            c = Little::Point.new
+            p = Little::Point.new(1.0,0.0,0.0).turn(tua,c).rotate(roa,c)
+            d = p.distance_xz(c)#Math.sqrt((p.x-c.x)**2 + (p.z-c.z)**2)
+            @view_angles.z = Math.acos(d).radians_to_degrees
+            #puts "#{p} => #{d} => #{r.radians_to_degrees}"
+            @changed = true
+        end
+        # x,z and x,y
+        def tilt_rotate (tia,roa)
+            @view_angles.x = roa
+            @view_angles.z = tia
+            c = Little::Point.new
+            p = Little::Point.new(1.0,0.0,0.0).tilt(tia,c).rotate(roa,c)
+            d = p.distance_zy(c)
+            @view_angles.y = Math.acos(d).radians_to_degrees
+            #puts "#{p} => #{d} => #{r.radians_to_degrees}"
+            @changed = true
         end
     end
 end

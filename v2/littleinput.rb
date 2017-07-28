@@ -1,5 +1,12 @@
 #!/usr/bin/env ruby
 
+# Little is a small and unassuming game engine based on Gosu.
+# All rights go to the Gosu people for the Gosu code.
+#
+# @author      Melinda Robertson
+# @copyright   Copyright (c) 2017 Little, LLC
+# @license     GNU
+
 require 'gosu'
 
 # Namespace for input functionality.
@@ -86,10 +93,10 @@ module Little
 		scene.input_map.each do |key, value|
 			if key == Little::Input::HOLD
 				value.each do |k,v|
-					register(@scene,scene,k,v, hold: true)
+					register(scene,@scene,k,v, hold: true)
 				end
 			else
-				register(@scene, scene, key, value)
+				register(scene, @scene, key, value)
 			end
 		end
     end

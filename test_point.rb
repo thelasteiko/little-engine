@@ -3,13 +3,6 @@
 require_relative 'v2/littlegraphics'
 require_relative "littlegame.rb"
 
-# Little is a small and unassuming game engine based on Gosu.
-# All rights go to the Gosu people for the Gosu code.
-#
-# Author::      Melinda Robertson
-# Copyright::   Copyright (c) 2017 Little, LLC
-# License::     GNU
-
 require_relative "v2/littlemanager.rb"
 
 class RotatingImage < Little::Object
@@ -35,18 +28,20 @@ class RotatingImage < Little::Object
 	end
 	
 	def update (tick)
+		#@game.camera.tilt_turn(-45.0,-45.0)
+		@game.camera.turn_rotate(-45.0,-45.0)
 		@tick_counter += tick
 		if @tick_counter >= 1
 			@angle += (@speed * tick)
 			@angle = 0.0 if @angle >= 360
 			if @type == :turn
-				@current = @start.turn(@angle,@point)
+				@current = @start.turn(@angle,@center)
 			elsif @type == :rotate
-				@current = @start.rotate(@angle,@point)
+				@current = @start.rotate(@angle,@center)
 			elsif @type == :tilt
-				@current = @start.tilt(@angle,@point)
+				@current = @start.tilt(@angle,@center)
 			elsif @type == :pos_diagonal
-				@current = @start.transform(45.0,@angle,@point)
+				@current = @start.transform(45.0,@angle,@center)
 			end
 			@tick_counter = 0.0
 		end
@@ -89,6 +84,7 @@ class Tick < Little::Object
 				@current = @start.rotate(@angle,@center)
 			elsif @type == :tilt
 				@current = @start.tilt(@angle,@center)
+				#puts "#{@current.x}, #{@center.x}"
 			elsif @type == :pos_diagonal
 				@current = @start.transform(15.0,@angle,@center)
 			end
@@ -105,7 +101,7 @@ end
 class PointScene < Little::Scene
 	def initialize(game)
 		super
-		center = Little::Point.new(12,0,0)
+		center = Little::Point.new(0,0,0)
 		push Tick.new(Little::Point.new(0,0,0),
 			Little::Point.new(0,-100,0), :static,
 			Gosu::Color::WHITE)
@@ -116,13 +112,13 @@ class PointScene < Little::Scene
 			Little::Point.new(0,0,-100), :turn,
 			Gosu::Color::GREEN)
 		push Tick.new(center,
-			Little::Point.new(0,0,100), :tilt,
+			Little::Point.new(-100,0,0), :tilt,
 			Gosu::Color::RED)
 		di_start = Little::Point.new(100,0,0)#.rotate(45.0, center)
 		push Tick.new(center,di_start, :pos_diagonal,
 			Gosu::Color::CYAN)
 			
-		push RotatingImage.new(center,
+		push RotatingImage.new(Little::Point.new(34,67,2),
 			Little::Point.new(32,0,0), :pos_diagonal)
 		
 	end
