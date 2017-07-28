@@ -21,19 +21,24 @@ In order to run littleengine you will need:
 | Texplay		| 0.4.4.pre |
 
 #### Ubuntu
-'''bash
+
 sudo apt-get install ruby
+
 sudp apt-get install freeglut3-dev
+
 sudo gem install gosu
+
 sudo gem install texplay -v 0.4.4.pre
-'''
 
 ### Using fxruby
-* Type these commands one at a time:
-    gem install fxruby
-    gem install opengl
-    gem install glu
 
+* Type these commands one at a time:
+
+gem install fxruby
+
+gem install opengl
+
+gem install glu
 
 ## Installing Ruby
 Ruby versions after 1.9 have gem installed already. Please see the appropriate installation instructions for your system.
@@ -56,21 +61,20 @@ you want to make double sure....
 
 * Open a terminal
 * Go to your home directory if you aren't there already
-'''bash
+
 cd /home/USERNAME
-'''
+
 * Open a the .bashrc file in your favorite text editor (with super user privileges)
-'''bash
+
 sudo vi .bashrc
-'''
+
 * Whatever you commands you add to this file will be called when you open a terminal, so let's modify the PATH
-'''bash
+
 export PATH=$PATH:/path/to/ruby
-'''
+
 * Save the file and set the .bashrc file as the source
-'''bash
+
 source .bashrc
-'''
 
 ## File Descriptions
 * littleengine.rb is the fxruby version
