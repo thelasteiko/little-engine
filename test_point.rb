@@ -102,9 +102,9 @@ class PointScene < Little::Scene
 	def initialize(game)
 		super
 		center = Little::Point.new(0,0,0)
-		push Tick.new(Little::Point.new(0,0,0),
-			Little::Point.new(0,-100,0), :static,
-			Gosu::Color::WHITE)
+#		push Tick.new(Little::Point.new(0,0,0),
+#			Little::Point.new(0,-100,0), :static,
+#			Gosu::Color::WHITE)
 		push Tick.new(center,
 			Little::Point.new(0,-100,0), :rotate,
 			Gosu::Color::BLUE)
@@ -112,7 +112,10 @@ class PointScene < Little::Scene
 			Little::Point.new(0,0,-100), :turn,
 			Gosu::Color::GREEN)
 		push Tick.new(center,
-			Little::Point.new(-100,0,0), :tilt,
+			Little::Point.new(0,0,-100), :tilt,
+			Gosu::Color::RED)
+		push Tick.new(center,
+			Little::Point.new(0,0,100), :tilt,
 			Gosu::Color::RED)
 		di_start = Little::Point.new(100,0,0)#.rotate(45.0, center)
 		push Tick.new(center,di_start, :pos_diagonal,

@@ -9,7 +9,6 @@
 
 require 'gosu'
 
-# Namespace for input functionality.
 module Little
   
   class Command
@@ -248,13 +247,18 @@ module Little
 						end
                     end
                 end
-            else @game.button_down?(key)
+            elsif @game.button_down?(key)
 				ary.each do |lc|
 					if lc.scene == @scene
 						req = lc.requester
 						sym = lc.method_sym
-						# Send the command from input so we know the key code
-						req.method(sym).call(key)
+						m = req.method(sym)
+						if m.arity > 0
+							# Send the command from input so we know the key code
+							req.method(sym).call(key)
+						else
+							req.method(sym).call
+						end
 					end
 				end
             end

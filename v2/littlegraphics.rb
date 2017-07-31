@@ -85,10 +85,16 @@ module Little
         def rotate (angle, center)
             return copy if angle == 0
             rad = angle.degrees_to_radians
-            rx = @x*Math.cos(rad) - @y*Math.sin(rad)
-            ry = @x*Math.sin(rad) + @y*Math.cos(rad)
+            cy = (center.y - @y)
+            cx = (center.x - @x)
+            #puts "#{cx}, #{cy}"
+            rcs = Math.cos(rad)
+            rsn = Math.sin(rad)
+            rx = cx*rcs - cy*rsn
+            ry = cx*rsn + cy*rcs
             rx += center.x
             ry += center.y
+            #puts "#{rx}, #{ry}"
             return Little::Point.new(rx,ry,@z)
         end
         # Rotates the specified number of degrees around the given center
@@ -96,8 +102,12 @@ module Little
         def turn (angle, center)
             return copy if angle == 0
             rad = angle.degrees_to_radians
-            rx = @x*Math.cos(rad) - @z*Math.sin(rad)
-            rz = @x*Math.sin(rad) + @z*Math.cos(rad)
+            cx = (center.x - @x)
+            cz = (center.z - @z)
+            rcs = Math.cos(rad)
+            rsn = Math.sin(rad)
+            rx = cx*rcs - cz*rsn
+            rz = cx*rsn + cz*rcs
             rx += center.x
             rz += center.z
             #puts "result: #{rx}, #{rz}"
@@ -108,8 +118,12 @@ module Little
         def tilt (angle, center)
             return copy if angle == 0
             rad = angle.degrees_to_radians
-            ry = @z*Math.cos(rad) - @y*Math.sin(rad)
-            rz = @z*Math.sin(rad) + @y*Math.cos(rad)
+            cy = (center.y - @y)
+            cz = (center.z - @z)
+            rcs = Math.cos(rad)
+            rsn = Math.sin(rad)
+            ry = cz*rcs - cy*rsn
+            rz = cz*rsn + cy*rcs
             ry += center.y
             rz += center.z
             return Little::Point.new(@x,ry,rz)
@@ -122,24 +136,20 @@ module Little
         # +center+  - The center point around which to transform.
         #
         # @return [Little::Point] The transformed point.
-        def transform (rotation_angle, turn_angle, center)
-            return copy if rotation_angle == 0 and turn_angle == 0
-            radr = rotation_angle.degrees_to_radians
-            radtu = turn_angle.degrees_to_radians
-            
-            rx = @x*Math.cos(radr) - @y*Math.sin(radr)
-            ry = @x*Math.sin(radr) + @y*Math.cos(radr)
-            rz = @x*Math.sin(radtu) + @z*Math.cos(radtu)
-            #puts "result 1: #{rx}, #{ry}, #{rz}"
-            rx = rx*Math.cos(radtu) - @z*Math.sin(radtu)
-            ry = @z*Math.sin(radtu) + ry*Math.cos(radtu)
-            rx += center.x
-            ry += center.y
-            rz += center.z
-            
-            
-            #puts "result 2: #{rx}, #{ry}, #{rz}"
-            return Little::Point.new(rx,ry,rz)
+        def transform (rotation_angle, tilt_angle, turn_angle, center)
+#                rx = @x
+#                ry = @y
+#                rz = @z
+            if rotation_angle == 0
+                return turn(turn_angle, center).tilt(tilt_angle,center)
+            elsif turn_angle == 0
+                return rotate(rotation_angle,center).tilt(tilt_angle,center)
+            else # tilt == 0?
+                return rotate(rotation_angle,center).turn(turn_angle,center)
+            end
+            return copy
+#            puts "result 2: #{rx}, #{ry}, #{rz}"
+#            return Little::Point.new(rx,ry,rz)
         end
         # Uses all three dimensions to calculate distance.
         def distance3D (pt)
@@ -682,6 +692,7 @@ module Little
         # Draws an image, rotate goes clockwise from north
         # WARNING: if you use the rotate option and have an angle transformation
         # set to the camera, it may not produce the result you are expecting.
+        # TODO clean this up, move shape functions to separate method
         def image(image, point, options={})    # "relative rotation origin"
             color = options[:color] ? options[:color] : Gosu::Color::WHITE
             ord = point.z
@@ -792,6 +803,7 @@ module Little
         attr_reader     :width
         attr_reader     :height
         attr_accessor   :distance_from_plane
+        #rotation, tilt, turn
         attr_reader     :view_angles
         attr_accessor   :changed
         
@@ -809,12 +821,12 @@ module Little
         
         def focus=(obj)
             @focus = obj
-            @changed = true
+            #@changed = true
         end
         
         def translate (point)
             #$FRAME.log self, "translate", "1(#{point})"
-            if @focus and not @focus.remove
+            if @focus
                 #focus is at the center
                 offset = @focus.get_center_offset(@width, @height)
                 #print "2(#{offset.x},#{offset.y})\n"
@@ -845,37 +857,43 @@ module Little
         # accordingly. x,z and z,y
         #
         def tilt_turn (tia,tua)
-            @view_angles.z = tia
-            @view_angles.y = tua
+            @view_angles.z = tia #x,z
+            @view_angles.y = tua #z,y
             c = Little::Point.new
-            p = Little::Point.new(1.0,0.0,0.0).tilt(tia,c).turn(tua,c)
+            p = Little::Point.new(1.0,1.0,1.0).tilt(tia,c)
+            #puts "tilt #{p}"
+            p = p.turn(tua,c)
             # r = Math.acos(a/h)
-            d = p.distance_xy(c)
+            d = p.distance_zy(c) - 1
+            #puts "d #{d}"
             @view_angles.x = Math.acos(d).radians_to_degrees
-            #puts "#{p} => #{d} => #{r.radians_to_degrees}"
+            puts "#{p} => #{d} => #{@view_angles}"
             @changed = true
-        end
-        # z,y and x,y
-        def turn_rotate (tua,roa)
-            @view_angles.y = tua
-            @view_angles.x = roa
-            c = Little::Point.new
-            p = Little::Point.new(1.0,0.0,0.0).turn(tua,c).rotate(roa,c)
-            d = p.distance_xz(c)#Math.sqrt((p.x-c.x)**2 + (p.z-c.z)**2)
-            @view_angles.z = Math.acos(d).radians_to_degrees
-            #puts "#{p} => #{d} => #{r.radians_to_degrees}"
-            @changed = true
+            @view_angles.x
         end
         # x,z and x,y
-        def tilt_rotate (tia,roa)
-            @view_angles.x = roa
-            @view_angles.z = tia
+        def turn_rotate (tua,roa)
+            @view_angles.z = tua #x,z
+            @view_angles.x = roa #x,y
             c = Little::Point.new
-            p = Little::Point.new(1.0,0.0,0.0).tilt(tia,c).rotate(roa,c)
-            d = p.distance_zy(c)
+            p = Little::Point.new(1.0,1.0,1.0).turn(tua,c).rotate(roa,c)
+            d = p.distance_xz(c) - 1#Math.sqrt((p.x-c.x)**2 + (p.z-c.z)**2)
             @view_angles.y = Math.acos(d).radians_to_degrees
-            #puts "#{p} => #{d} => #{r.radians_to_degrees}"
+            puts "#{p} => #{d} => #{@view_angles}"
             @changed = true
+            @view_angles.y
+        end
+        # z,y and x,y
+        def tilt_rotate (tia,roa)
+            @view_angles.x = roa #x,y
+            @view_angles.y = tia #z,y
+            c = Little::Point.new
+            p = Little::Point.new(1.0,1.0,1.0).rotate(roa,c).tilt(tia,c)
+            d = p.distance_xy(c) - 1
+            @view_angles.z = Math.acos(d).radians_to_degrees
+            puts "#{p} => #{d} => #{@view_angles}"
+            @changed = true
+            @view_angles.z
         end
     end
 end

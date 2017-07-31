@@ -125,8 +125,8 @@ module Little
             #
             # @param graphics [Little::Graphics] object that adds some
             #                   functionality to the standard Gosu draw
-            #                   methods. Can be nil.
-            def __draw (graphics=nil)
+            #                   methods.
+            def __draw (graphics)
                 return nil if @remove
                 draw graphics
             end
@@ -135,8 +135,8 @@ module Little
             #
             # @param graphics [Little::Graphics] object that adds some
             #                   functionality to the standard Gosu draw
-            #                   methods. Can be nil.
-            def draw (graphics=nil)
+            #                   methods.
+            def draw (graphics)
                 $FRAME.log self, "draw", "Not implemented", verbose: true
             end
         else
@@ -200,7 +200,7 @@ module Little
         #
         # @param tick [Number] The seconds between this update and the last.
         #               Normally 0.0 < tick < 1.0   
-        def update(tick=nil)
+        def update(tick)
             @entities.each {|i| i.__update(tick)}
             @entities.delete_if {|i| i.remove}
         end
@@ -211,7 +211,7 @@ module Little
             # @param graphics [Little::Graphics] object that adds some
             #                   functionality to the standard Gosu draw
             #                   methods. Can be nil.
-            def draw (graphics=nil)
+            def draw (graphics)
                 graphics.start_group(@order) if graphics
                 @entities.each {|i| i.__draw(graphics)}
                 graphics.end_group(@order) if graphics
@@ -339,7 +339,7 @@ module Little
         # removal.
         # @param +tick+  - The seconds between this update and the last.
         #               Normally 0.0 < tick < 1.0    
-        def update (tick=nil)
+        def update (tick)
           #@groups.each{|key, value| value.each{|i| i.__update(tick)}}
             threads = []
             @groups.each do |key, value|
@@ -358,19 +358,20 @@ module Little
             # @param +graphics+  - The Little::Graphics object that adds some
             #                   functionality to the standard Gosu draw
             #                   methods. Can be nil.
-            def draw (graphics=nil)
+            def draw (graphics)
               @groups.each do |key, value|
                 graphics.start_group(value.order) if graphics
                 value.each{|i| i.__draw(graphics)}
                 graphics.end_group(value.order) if graphics
-              end  
+              end
+              @game.camera.changed = false  
             end
         else
             # Calls draw on all the groups.
             def draw
               @groups.each do |key, value|
                 value.each{|i| i.__draw}
-              end  
+              end
             end
         end
         # Adds a new game object to the indicated group.
