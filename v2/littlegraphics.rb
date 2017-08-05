@@ -24,8 +24,8 @@
     @see https://www.math.utah.edu/~treiberg/Perspect/Perspect.htm
 =end
 require 'gosu'
-require 'texplay'
-require 'chipmunk'
+#require 'texplay'
+#require 'chipmunk'
 
 module Little
 
@@ -140,8 +140,27 @@ module Little
 #                rx = @x
 #                ry = @y
 #                rz = @z
+#            cx = (center.x - @x)
+#            cy = (center.y - @y)
+#            cz = (center.z - @z)
+#            rcs = Math.cos(rotation_angle.radians_to_degrees)
+#            rsn = Math.sin(rotation_angle.radians_to_degrees)
+#            tics = Math.cos(tilt_angle.radians_to_degrees)
+#            tisn = Math.sin(tilt_angle.radians_to_degrees)
+#            tucs = Math.cos(turn_angle.radians_to_degrees)
+#            tusn = Math.sin(turn_angle.radians_to_degrees)
             if rotation_angle == 0
                 return turn(turn_angle, center).tilt(tilt_angle,center)
+#                tucs = Math.cos(turn_angle.radians_to_degrees)
+#                tusn = Math.sin(turn_angle.radians_to_degrees)
+#                tics = Math.cos(tilt_angle.radians_to_degrees)
+#                tisn = Math.sin(tilt_angle.radians_to_degrees)
+                #turn
+#                rx = cx*tucs - cz*tusn
+#                rz = cx*tusn + cz*tucs
+                #tilt
+#                ry = rx*tisn - cy*tics #?
+#                rx = rx*tisn               
             elsif turn_angle == 0
                 return rotate(rotation_angle,center).tilt(tilt_angle,center)
             else # tilt == 0?
@@ -804,6 +823,7 @@ module Little
         attr_reader     :height
         attr_accessor   :distance_from_plane
         #rotation, tilt, turn
+        attr_reader     :reference_pt
         attr_reader     :view_angles
         attr_accessor   :changed
         
@@ -817,6 +837,7 @@ module Little
             @distance_from_plane = 1.0
             @view_angles = Little::Point.new
             @changed = false
+            @reference_pt = Little::Point.new(1.0,1.0,1.0)
         end
         
         def focus=(obj)
@@ -856,44 +877,47 @@ module Little
         # Sets tilt and turn and changes the rotation angle
         # accordingly. x,z and z,y
         #
-        def tilt_turn (tia,tua)
-            @view_angles.z = tia #x,z
-            @view_angles.y = tua #z,y
+        def tilt (tia)
+            @view_angles.y = tia #x,z
+            #@view_angles.y = tua #z,y
             c = Little::Point.new
-            p = Little::Point.new(1.0,1.0,1.0).tilt(tia,c)
+            p = @reference_pt.tilt(tia,c)#.turn(tua,c)
             #puts "tilt #{p}"
-            p = p.turn(tua,c)
+            #p = p.turn(tua,c)
             # r = Math.acos(a/h)
             d = p.distance_zy(c) - 1
             #puts "d #{d}"
-            @view_angles.x = Math.acos(d).radians_to_degrees
+            #@view_angles.x = Math.acos(d).radians_to_degrees
             puts "#{p} => #{d} => #{@view_angles}"
             @changed = true
-            @view_angles.x
+            @reference_pt = p
+            #@view_angles.x
         end
         # x,z and x,y
-        def turn_rotate (tua,roa)
+        def turn (tua)
             @view_angles.z = tua #x,z
-            @view_angles.x = roa #x,y
+            #@view_angles.x = roa #x,y
             c = Little::Point.new
-            p = Little::Point.new(1.0,1.0,1.0).turn(tua,c).rotate(roa,c)
+            p = @reference_pt.turn(tua,c)#.rotate(roa,c)
             d = p.distance_xz(c) - 1#Math.sqrt((p.x-c.x)**2 + (p.z-c.z)**2)
-            @view_angles.y = Math.acos(d).radians_to_degrees
+            #@view_angles.y = Math.acos(d).radians_to_degrees
             puts "#{p} => #{d} => #{@view_angles}"
             @changed = true
-            @view_angles.y
+            @reference_pt = p
+            #@view_angles.y
         end
         # z,y and x,y
-        def tilt_rotate (tia,roa)
+        def rotate (roa)
             @view_angles.x = roa #x,y
-            @view_angles.y = tia #z,y
+            #@view_angles.y = tia #z,y
             c = Little::Point.new
-            p = Little::Point.new(1.0,1.0,1.0).rotate(roa,c).tilt(tia,c)
+            p = @reference_pt.rotate(roa,c)#.tilt(tia,c)
             d = p.distance_xy(c) - 1
-            @view_angles.z = Math.acos(d).radians_to_degrees
+            #@view_angles.z = Math.acos(d).radians_to_degrees
             puts "#{p} => #{d} => #{@view_angles}"
             @changed = true
-            @view_angles.z
+            @reference_pt = p
+            #@view_angles.z
         end
     end
 end

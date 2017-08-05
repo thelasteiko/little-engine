@@ -24,7 +24,9 @@ class Line < Little::Object
 			#$FRAME.log self, "update", "#{@game.camera.view_angles}"
 			a = @game.camera.view_angles
 			@start_cur = @start_orig.transform(a.x,a.y,a.z,f)
-			@end_cur = @end_orig.transform(a.x,a.y,a.z,f)
+            #@start_cur = @start_orig.tilt(a.y,f)
+			#@end_cur = @end_orig.transform(a.x,a.y,a.z,f)
+            @end_cur = @end_orig.tilt(a.y,f)
 			#$FRAME.log self, "update", "Moved to #{@start_cur}, #{@end_cur}\n"
 		end
 	end
@@ -80,26 +82,22 @@ class Pointer < Little::Object
 	def move_by_key(c)
 		if c == Gosu::KB_RIGHT
 			@turn += @speed
-			#@tilt += @speed / 2
-			@rotate = @game.camera.tilt_turn(@tilt,@turn)
+			@game.camera.turn(@turn)
 		elsif c == Gosu::KB_LEFT
 			@turn -= @speed
-			#@tilt -= @speed / 2
-			@rotate = @game.camera.tilt_turn(@tilt,@turn)
+			@game.camera.turn(@turn)
 		elsif c == Gosu::KB_UP
 			@tilt += @speed
-			#@turn += @speed / 2
-			@rotate = @game.camera.tilt_turn(@tilt,@turn)
+			@game.camera.tilt(@tilt)
 		elsif c == Gosu::KB_DOWN
 			@tilt -= @speed
-			#@turn -= @speed / 2
-			@rotate = @game.camera.tilt_turn(@tilt,@turn)
+			@game.camera.tilt(@tilt)
 		elsif c == Gosu::KB_A
 			@rotate += @speed
-			@turn = @game.camera.tilt_rotate(@tilt,@rotate)
+			@game.camera.rotate(@rotate)
 		elsif c == Gosu::KB_D
 			@rotate -= @speed
-			@tilt = @game.camera.turn_rotate(@turn,@rotate)
+			@game.camera.rotate(@rotate)
 		end
 		#$FRAME.log self, "move_camera", "Moving to #{@turn}, #{@tilt}"
 		

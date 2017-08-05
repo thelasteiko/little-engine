@@ -6,8 +6,8 @@ auto_continue_multiline=true
 [file_prefs]
 final_new_line=true
 ensure_convert_new_lines=false
-strip_trailing_spaces=false
-replace_tabs=false
+strip_trailing_spaces=true
+replace_tabs=true
 
 [indentation]
 indent_width=4
@@ -21,7 +21,7 @@ indent_mode=2
 name=little-engine
 base_path=/home/mindu/Documents/05-Programming/07-Git/little-engine
 description=
-file_patterns=*.rb;*.txt;
+file_patterns=*.rb;*.txt;*.md;
 
 [long line marker]
 long_line_behaviour=1

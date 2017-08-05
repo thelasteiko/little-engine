@@ -41,7 +41,7 @@ class RotatingImage < Little::Object
 			elsif @type == :tilt
 				@current = @start.tilt(@angle,@center)
 			elsif @type == :pos_diagonal
-				@current = @start.transform(45.0,@angle,@center)
+				@current = @start.transform(45.0,@angle,@angle,@center)
 			end
 			@tick_counter = 0.0
 		end
@@ -86,7 +86,7 @@ class Tick < Little::Object
 				@current = @start.tilt(@angle,@center)
 				#puts "#{@current.x}, #{@center.x}"
 			elsif @type == :pos_diagonal
-				@current = @start.transform(15.0,@angle,@center)
+				@current = @start.transform(15.0,@angle,@angle,@center)
 			end
 			@tick_counter = 0.0
 		end
