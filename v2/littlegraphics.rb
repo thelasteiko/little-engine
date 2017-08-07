@@ -80,22 +80,58 @@ module Little
         def copy
             return Little::Point.new(@x,@y,@z)
         end
+        def angle_xy(pt)
+            #r = distance_xy(pt)
+            rx = @x-pt.x
+            ry = @y-pt.y
+            arg = (ry/rx)
+            theta = Math.atan(arg).radians_to_degrees
+            #need to know what quadrant this point is in relative to pt
+            puts "#{@x},#{pt.x}|#{@y},#{pt.y}|#{rx},#{ry}"
+            if rx < 0 # II or III
+                if ry < 0 #II
+                    puts "II"
+                    return theta + 90.0
+                else #III
+                    puts "III"
+                    return theta + 280.0
+                end
+            else # @x > pt.x #I or IV
+                if ry < 0 #I
+                    puts "I"
+                    return theta + 90.0
+                else # @y > pt.y #IV
+                    puts "IV"
+                    return theta + 280.0
+                end
+            end
+        end
         # Rotates the specified number of degrees around the given center
         # in the x,y direction. Angles go clockwise, a la not unit circle
         def rotate (angle, center)
             return copy if angle == 0
-            rad = angle.degrees_to_radians
-            cy = (center.y - @y)
-            cx = (center.x - @x)
-            #puts "#{cx}, #{cy}"
+            a = angle_xy(center)
+            rad = (a+angle).degrees_to_radians
+            puts "#{self}\n#{center}\nRadians to: #{rad}"
+            cy = (@y - center.y)
+            cx = (@x - center.x)
+            d = distance_xy(center)
+            puts "D:#{d}, Dx:#{cx}, Dy:#{cy}"
             rcs = Math.cos(rad)
             rsn = Math.sin(rad)
-            rx = cx*rcs - cy*rsn
-            ry = cx*rsn + cy*rcs
+            puts "cos:#{rcs},sin:#{rsn},atan:#{Math.atan(cy/cx)}"
+            puts "Angle:#{Little::Point.new(rcs,rsn).angle_xy(Little::Point.new)}"
+            rx = (cx*rcs - cy*rsn)
+#            rx = rcs - rsn
+            ry = (cy*rsn + cx*rcs)
+#            ry = rsn + rcs
+            puts "rx:#{rx}, ry:#{ry}"
             rx += center.x
             ry += center.y
-            #puts "#{rx}, #{ry}"
-            return Little::Point.new(rx,ry,@z)
+            puts "rx:#{rx}, ry:#{ry}"
+            p = Little::Point.new(rx,ry,@z)
+            puts "D:#{p.distance_xy(center)}"
+            return p
         end
         # Rotates the specified number of degrees around the given center
         # in the x,z direction. Angles go clockwise, a la not unit circle
@@ -418,12 +454,13 @@ module Little
         #   is called.
         #   @see #set_local_transform
         attr_reader     :local_point
+        attr_reader     :point
         
         def initialize (*args)#x=0, y=0, z=0, w=0, h=0, d=0)
             @local_angles = Little::Point.new
             @view_angles = Little::Point.new
             if args.size == 0
-                point
+                @point = Little::Point.new
                 @dimensions = Little::Point.new
             elsif args.size == 2
                 @point = args[0]
@@ -438,6 +475,7 @@ module Little
             elsif args.size == 8
                 @point = Little::Point.new(args[0],args[1],args[2])
                 @dimensions = Little::Point.new(args[3],args[4],args[5])
+                #local angles?
             end
             @local_point = @point
         end
@@ -491,7 +529,7 @@ module Little
 
         # The center of the 3D shape.
         def center
-            Little::Point.new(@point.x + width/2, @point.y-height/2,
+            Little::Point.new(@point.x + width/2, @point.y+height/2,
                     @point.z - depth/2)
         end
         # The center of the top/lid/head of the shape.
