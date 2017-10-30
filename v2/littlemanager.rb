@@ -119,6 +119,7 @@ module Little
 	# the first object for every group not excluded
 	# The method can be called more than once
 	module Accessible
+    # Addes methods statically to an object class.
 		def create_quick_list (exclude=[:default])
 			return nil if not @groups
 			keys = @groups.keys

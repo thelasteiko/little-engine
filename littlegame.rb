@@ -7,65 +7,14 @@
 # @copyright   Copyright (c) 2017 Little, LLC
 # @license     GNU
 
+# Game library for drawing stuff
 require 'gosu'
+# Loads configuration and defines globals
+require 'littleconfig'
 
 
 # @see https://github.com/gosu/gosu/wiki/Getting-Started-on-Linux
 # @see http://www.rubydoc.info/github/gosu/gosu/Gosu
-
-#Set this to true to display the debug information.
-$DEBUG = true
-#Set this to true to show verbose debug info
-$VERBOSE = false
-#Set this to true to display FPS and tick.
-$SHOW_FPS = true
-#Set this to true to save comments to file.
-$LOG = false
-#Set this to true for tracking performance.
-$PERFORMANCE = false
-$INPUT = true
-$GRAPHICS = true
-$AUDIO = true
-
-# Prints an error and closes the application if the error is critical.
-#
-# @param +exception+ - The exception thrown.
-# @param +explicit+  - True means a particular and expected exception was thrown.
-#                   False means an exception was thrown but we don't know
-#                   what kind.
-# @param +critical+  - The program won't continue if this is true.
-def print_exception(exception, explicit, critical=false)
-    puts "[#{explicit ? 'EXPLICIT' : 'INEXPLICIT'}] #{exception.class}: #{exception.message}"
-    puts exception.backtrace.join("\n")
-    if critical
-        abort("Critical exception, exiting.\n")
-    else
-        puts "Non-critical, continuing..."
-    end
-end
-
-begin
-    # Logs messages and performance to a file.
-    if $LOG
-        require_relative 'v1/littlelog'
-    end
-    # Handles user input
-    if $INPUT
-        require_relative 'v2/littleinput'
-    end
-    # Draws things on the canvas
-    if $GRAPHICS
-        require_relative 'v2/littlegraphics'
-    end
-    # Helper modules and methods for audio
-    if $AUDIO
-        require_relative 'v2/littleaudio'
-    end
-rescue LoadError => e
-    print_exception(e, true)
-rescue Exception => e
-    print_exception(e, false)
-end
 
 # The Little module is used as a namespace for all the things.
 module Little
@@ -155,6 +104,11 @@ module Little
         # Performs any clean-up operations when the scene or game closes.
         def on_close
             $FRAME.log self, "on_close", "Not implemented", verbose: true
+        end
+        # Create a string that can be saved to a file and
+        # the original object restored with correct field values.
+        def serialize
+          return "<#{self.class}>{#{@remove}}"
         end
     end
 

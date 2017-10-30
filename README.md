@@ -45,7 +45,7 @@ Ruby versions after 1.9 have gem installed already. Please see the appropriate i
 
 https://www.ruby-lang.org/en/downloads/
 
-To put Ruby and Gem into your path variable:
+Ensure Ruby and Gem are in your path variable:
 
 ### Windows users
 

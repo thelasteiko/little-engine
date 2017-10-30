@@ -87,125 +87,49 @@ module Little
             arg = (ry/rx)
             theta = Math.atan(arg).radians_to_degrees
             #need to know what quadrant this point is in relative to pt
-            puts "#{@x},#{pt.x}|#{@y},#{pt.y}|#{rx},#{ry}"
+            #puts "#{@x},#{pt.x}|#{@y},#{pt.y}|#{rx},#{ry}"
             if rx < 0 # II or III
                 if ry < 0 #II
-                    puts "II"
+                    #puts "II"
                     return theta + 90.0
                 else #III
-                    puts "III"
+                    #puts "III"
                     return theta + 280.0
                 end
             else # @x > pt.x #I or IV
                 if ry < 0 #I
-                    puts "I"
+                    #puts "I"
                     return theta + 90.0
                 else # @y > pt.y #IV
-                    puts "IV"
+                    #puts "IV"
                     return theta + 280.0
                 end
             end
         end
         # Rotates the specified number of degrees around the given center
         # in the x,y direction. Angles go clockwise, a la not unit circle
+        # because the canvas has an upside-down coordinate plain
         def rotate (angle, center)
             return copy if angle == 0
-            a = angle_xy(center)
-            rad = (a+angle).degrees_to_radians
+            rad = angle.degrees_to_radians
             puts "#{self}\n#{center}\nRadians to: #{rad}"
             cy = (@y - center.y)
             cx = (@x - center.x)
-            d = distance_xy(center)
-            puts "D:#{d}, Dx:#{cx}, Dy:#{cy}"
+            puts "Dx:#{cx}, Dy:#{cy}"
             rcs = Math.cos(rad)
             rsn = Math.sin(rad)
-            puts "cos:#{rcs},sin:#{rsn},atan:#{Math.atan(cy/cx)}"
-            puts "Angle:#{Little::Point.new(rcs,rsn).angle_xy(Little::Point.new)}"
+            puts "cos:#{rcs},sin:#{rsn}"
             rx = (cx*rcs - cy*rsn)
-#            rx = rcs - rsn
             ry = (cy*rsn + cx*rcs)
-#            ry = rsn + rcs
             puts "rx:#{rx}, ry:#{ry}"
             rx += center.x
             ry += center.y
             puts "rx:#{rx}, ry:#{ry}"
             p = Little::Point.new(rx,ry,@z)
-            puts "D:#{p.distance_xy(center)}"
+            #puts "D:#{p.distance_xy(center)}"
             return p
         end
-        # Rotates the specified number of degrees around the given center
-        # in the x,z direction. Angles go clockwise, a la not unit circle
-        def turn (angle, center)
-            return copy if angle == 0
-            rad = angle.degrees_to_radians
-            cx = (center.x - @x)
-            cz = (center.z - @z)
-            rcs = Math.cos(rad)
-            rsn = Math.sin(rad)
-            rx = cx*rcs - cz*rsn
-            rz = cx*rsn + cz*rcs
-            rx += center.x
-            rz += center.z
-            #puts "result: #{rx}, #{rz}"
-            return Little::Point.new(rx,@y,rz)
-        end
-        # Tilts the specified number of degrees around the given center
-        # in the y,z direction. Angles go up, back and around
-        def tilt (angle, center)
-            return copy if angle == 0
-            rad = angle.degrees_to_radians
-            cy = (center.y - @y)
-            cz = (center.z - @z)
-            rcs = Math.cos(rad)
-            rsn = Math.sin(rad)
-            ry = cz*rcs - cy*rsn
-            rz = cz*rsn + cy*rcs
-            ry += center.y
-            rz += center.z
-            return Little::Point.new(@x,ry,rz)
-        end
-        # Returns a copy of the point transformed according to the
-        # provided angles. Angles are in degrees.
-        #
-        # +rotation_angle+   - The angle of rotation along the x,y plain.
-        # +turn_angle+  - The angle of rotation along the x,z plain.
-        # +center+  - The center point around which to transform.
-        #
-        # @return [Little::Point] The transformed point.
-        def transform (rotation_angle, tilt_angle, turn_angle, center)
-#                rx = @x
-#                ry = @y
-#                rz = @z
-#            cx = (center.x - @x)
-#            cy = (center.y - @y)
-#            cz = (center.z - @z)
-#            rcs = Math.cos(rotation_angle.radians_to_degrees)
-#            rsn = Math.sin(rotation_angle.radians_to_degrees)
-#            tics = Math.cos(tilt_angle.radians_to_degrees)
-#            tisn = Math.sin(tilt_angle.radians_to_degrees)
-#            tucs = Math.cos(turn_angle.radians_to_degrees)
-#            tusn = Math.sin(turn_angle.radians_to_degrees)
-            if rotation_angle == 0
-                return turn(turn_angle, center).tilt(tilt_angle,center)
-#                tucs = Math.cos(turn_angle.radians_to_degrees)
-#                tusn = Math.sin(turn_angle.radians_to_degrees)
-#                tics = Math.cos(tilt_angle.radians_to_degrees)
-#                tisn = Math.sin(tilt_angle.radians_to_degrees)
-                #turn
-#                rx = cx*tucs - cz*tusn
-#                rz = cx*tusn + cz*tucs
-                #tilt
-#                ry = rx*tisn - cy*tics #?
-#                rx = rx*tisn               
-            elsif turn_angle == 0
-                return rotate(rotation_angle,center).tilt(tilt_angle,center)
-            else # tilt == 0?
-                return rotate(rotation_angle,center).turn(turn_angle,center)
-            end
-            return copy
-#            puts "result 2: #{rx}, #{ry}, #{rz}"
-#            return Little::Point.new(rx,ry,rz)
-        end
+
         # Uses all three dimensions to calculate distance.
         def distance3D (pt)
             Math.sqrt((@x - pt.x)**2 + (@y - pt.y)**2 + (@z - pt.z)**2)
@@ -220,14 +144,7 @@ module Little
         def distance_xz (pt)
             Math.sqrt((@x-pt.x)**2 + (@z-pt.z)**2)
         end
-        # Calculates the conceptual depth distance using x,z
-        def distance1Dx (pt)
-            Math.sqrt((@x-pt.x)**2 + (@z-pt.z)**2)
-        end
-        # Calculates the conceptual depth distance using y,z
-        def distance1Dy (pt)
-            Math.sqrt((@y-pt.y)**2 + (@z-pt.z)**2)
-        end
+
         # Uses x,y as the center and z as the radius
         def to_circle(color=Gosu::Color::WHITE, filled=true)
             return @circle if @circle
@@ -243,8 +160,8 @@ module Little
             end
             return @circle
         end
-        
-        def to_vec
+        # Convert to a chipmunk vector
+        def to_cp_vec
             return CP::Vec2.new(@x,@y)
         end
         
@@ -304,7 +221,7 @@ module Little
             pts.each {|p| push(p)}
         end
         # Adds to the path using a list of numbers.
-        # The list should be an even number of points.
+        # The list should be an even number to correspond to x,y coordinates.
         def add_nums(nums)
             i = 1
             while i < nums.size
@@ -347,7 +264,7 @@ module Little
             return Little::Point.new(@bottom_right.x-(width/2),
                 @bottom_left.y-(height)/2)
         end
-        
+        # Requires Texplay, which does not work natively on Windows :P
         def to_img (color = Gosu::Color::WHITE)
             return @img if @img
             @img = TexPlay::create_blank_image($FRAME, width, height)
@@ -358,8 +275,7 @@ module Little
             end
             return @img
         end
-        # This method should return a list of points from the center
-        # around...
+        # Convert to list of chipmunk vectors
         def to_cp_bounds
             b = []
             pt = relative_to_center
@@ -395,7 +311,7 @@ module Little
             end
         end
     end
-    
+    # Capable of being used to focus the camera.
     module Focusable
         def point
             @point ||= Little::Point.new
@@ -416,13 +332,13 @@ module Little
             return point.get_center_offset(width,height,depth)
         end
     end
-    
+    # Has a path object. May include more later.
     module Traceable
         def path
             @path ||= Little::Path.new
         end
     end
-    
+    # Has a font.
     module Typeable
         def font
             @font ||= Gosu::Font.new(12)
@@ -432,6 +348,7 @@ module Little
     # The shape just defines a rectangular bounds for an object.
     # The object is drawn at point and the amount of space it occupies
     # is defined by dimensions.
+    # The shape is meant to define collision bounds.
     class Shape
         include Little::Focusable
         
@@ -446,68 +363,32 @@ module Little
         
         # Width, height, depth
         attr_accessor   :dimensions
-        # rotation, turn, tilt
-        attr_reader     :local_angles
-        # @!attribute [r] local_point
-        #   @return [Little::Point] The location of this object relative
-        #   to the local rotation, turn and tilt. Set when set_local_transform
-        #   is called.
-        #   @see #set_local_transform
-        attr_reader     :local_point
-        attr_reader     :point
+        attr_accessor   :point
+        # @!local_rotate  [rw]  local_rotate
+        #   @return [Float]     rotation around the center of the shape,
+        #                       changes where the planes of effect are <- TODO wha? clarify
+        attr_accessor   :local_rotate
         
         def initialize (*args)#x=0, y=0, z=0, w=0, h=0, d=0)
-            @local_angles = Little::Point.new
-            @view_angles = Little::Point.new
-            if args.size == 0
+            @local_rotate = 0.0
+            if args.size == 0 # default object
                 @point = Little::Point.new
                 @dimensions = Little::Point.new
-            elsif args.size == 2
+            elsif args.size == 2 # two Little::Point objects
                 @point = args[0]
                 @dimensions = args[1]
-            elsif args.size == 4
+            elsif args.size == 3 # two Little::Point objects and a rotate
                 @point = args[0]
                 @dimensions = args[1]
-                set_local_transform(args[2],args[3])
-            elsif args.size == 6
+                @local_rotate = args[2]
+            elsif args.size == 6 # uses six numbers to create two Little::Points for location and dimensions
                 @point = Little::Point.new(args[0],args[1],args[2])
                 @dimensions = Little::Point.new(args[3],args[4],args[5])
-            elsif args.size == 8
+            elsif args.size == 7 # six for two points, 7 for rotation
                 @point = Little::Point.new(args[0],args[1],args[2])
                 @dimensions = Little::Point.new(args[3],args[4],args[5])
-                #local angles?
+                @local_rotate = args[6]
             end
-            @local_point = @point
-        end
-        # Sets the local rotation, turn and tilt, causing the local
-        # point of this object to change. This will also reset the
-        # view angles to 0.0 so call set_view_angles to readjust them.
-        #
-        # @see #set_view_angles
-        #
-        # @param roa [Number] the rotation angle in degrees
-        # @param tua [Number] the turn angle in degrees
-        def set_local_transform(roa, tua)
-            @local_angles.x = roa
-            @local_angles.y = tua
-            c = Little::Point.new
-            p = Little::Point.new(1.0,0.0,0.0).turn(tua,c).rotate(roa,c)
-            d = p.distance_xz(c)#Math.sqrt((p.x-c.x)**2 + (p.z-c.z)**2)
-            @local_angles.z = Math.acos(d).radians_to_degrees
-            @local_point = @point.transform(@local_angles.x,@local_angles.y,center)
-            @view_angles = @local_angles
-        end
-        # Sets the angle that the camera is viewing the shape from, based
-        # on the given angles and the local angles.
-        #
-        # @see #set_local_transform
-        #
-        # @param roa [Number] the rotation angle of the camera in degrees
-        # @param tua [Number] the turn angle of the camera in degrees
-        # @param tia [Number] the tilt angle of the camera in degrees
-        def set_view_angles (roa,tua,tia)
-            @view_angles = Little::Point.new(@local_angles.x+roa,
-                @local_angles.y+tua,@local_angles.z+tia)
         end
         
         def width
@@ -527,7 +408,9 @@ module Little
             end
         end
 
-        # The center of the 3D shape.
+        # The center of the 3D shape. Note that this works for 2D as well,
+        # if you ignore the z. Does not incorporate angle transforms but
+        # for 2D it works out the same.
         def center
             Little::Point.new(@point.x + width/2, @point.y+height/2,
                     @point.z - depth/2)
@@ -542,7 +425,9 @@ module Little
             Little::Point.new(@point.x + width/2, @point.y-height,
                     @point.z - depth/2)
         end
-        def inside? (*pt)
+        # Determines if a Little::Point is in this shape's area on screen
+        # Let's keep this to 2D for now
+        def pt_inside? (*pt)
             if pt.size == 1
                 nil
             elsif pt.size == 2
@@ -579,16 +464,7 @@ module Little
             end
         end
         def copy
-            s = Little::Shape.new(@point,@dimensions)
-            s.set_local_transform(@local_rotate,@local_turn)
-            return s
-        end
-        # Return a shape that has the given transformations from this shape.
-        # rotation, turn, center
-        def translated (roa, tua, center)
-            s = Little::Shape.new(@point.transform(roa,tua,center),
-                @dimensions.copy)
-            s.set_local_transform(@local_angles.x,@local_angles.y)
+            s = Little::Shape.new(@point,@dimensions,@local_rotate)
             return s
         end
     end
@@ -657,7 +533,7 @@ module Little
         end
         # Creates a line between two points. Really buggy
         # Use the :to_img option to create an image of the line.
-        # Saving the image rather than recreating it makes it non-buggy
+        # Recommend saving it as an image and drawing that
         def line (point1, point2, options={})
             color = options[:color] ? options[:color] : Gosu::Color::WHITE
             ord = options[:order] ? options[:order] : @order
@@ -689,19 +565,18 @@ module Little
             Gosu::draw_rect(p.x,p.y,width,height,
                 color,ord)
         end
-        # Colors a single pixel.
+        # just returns a pixel image
         def pixel(point, options={})
             color = options[:color] ? options[:color] : Gosu::Color::WHITE
             ord = options[:order] ? options[:order] : @order
             p = point
-            set_default(options)
             #$FRAME.log self, "pixel", "Point 1 #{p.x}, #{p.y}"
             if not options[:do_not_focus]
                 p = @camera.translate(p)
                 #$FRAME.log self, "pixel", "Point 2 #{p.x}, #{p.y}"
             end
             img = TexPlay::create_image(@game, 1, 1, color: color )
-            img.draw p.x, p.y, ord
+            return img
         end
         # Colors a set of pixels.
         def pixels (points, options={})
@@ -747,8 +622,6 @@ module Little
         end
         
         # Draws an image, rotate goes clockwise from north
-        # WARNING: if you use the rotate option and have an angle transformation
-        # set to the camera, it may not produce the result you are expecting.
         # TODO clean this up, move shape functions to separate method
         def image(image, point, options={})    # "relative rotation origin"
             color = options[:color] ? options[:color] : Gosu::Color::WHITE
@@ -757,8 +630,10 @@ module Little
             if options[:do_not_use_z]
                 ord = options[:order] ? options[:order] : @order
             end
-            #TODO better way to do scaling?
-            if options[:shape] and options[:scale_on_shape]
+            #TODO better way to do scaling? rotation?
+            if options[:shape]
+              options[:rotate_angle] = options[:shape].local_rotate
+              if options[:scale_on_shape]
                 dp = options[:shape].depth.to_f
                 z = (ord.to_f + 1.0)
                 d = 1.0
@@ -773,6 +648,7 @@ module Little
                     #$FRAME.log self, "image", ">0: #{d}=#{ord+1.0}/#{dp}"
                 end
                 options[:scale] = Little::Point.new(d,d)
+              end
             end
             if not options[:scale]
                 options[:scale] = Little::Point.new(1,1)
@@ -784,6 +660,7 @@ module Little
             end
             #$FRAME.log self, "image", "4(#{p})"
             if options[:rotate_angle]
+                # uses the default if none specified
                 r = options[:rotate_center] ? options[:rotate_center] : Little::Point.new(0.5,0.5)
                 #draw_rot(x, y, z, angle, center_x = 0.5, center_y = 0.5, scale_x = 1, scale_y = 1, color = 0xff_ffffff, mode = :default
                 image.draw_rot(p.x,p.y, ord,
@@ -818,7 +695,7 @@ module Little
         end
         
         # These functions provide default values for the graphics object.
-        # So the user (and I) don't have to provide all the things
+        # It's just for gee-wiz
         def default_options
             return {
                 color:          Gosu::Color::WHITE,
@@ -834,20 +711,6 @@ module Little
                 scale_on_shape: false
             }
         end
-        
-        private
-        def set_default (opt)
-            dopt = default_options
-            keys = dopt.keys
-            keys.each do |k|
-                if not opt[k]
-                    opt[k] = dopt[k]
-                end
-            end
-            opt[:order] = @order
-            #$FRAME.log self, "set_default", "Order: #{opt[:order]}"
-        end
-
     end
     
     # Keeps the graphics object focused on a particular game object,
@@ -859,10 +722,6 @@ module Little
         attr_reader     :focus
         attr_reader     :width
         attr_reader     :height
-        attr_accessor   :distance_from_plane
-        #rotation, tilt, turn
-        attr_reader     :reference_pt
-        attr_reader     :view_angles
         attr_accessor   :changed
         
         # Initializes a camera with a set width and height for the screen.
@@ -872,10 +731,7 @@ module Little
             @focus = nil
             @width = width
             @height = height
-            @distance_from_plane = 1.0
-            @view_angles = Little::Point.new
             @changed = false
-            @reference_pt = Little::Point.new(1.0,1.0,1.0)
         end
         
         def focus=(obj)
@@ -907,55 +763,6 @@ module Little
                 a.push translate(p)
             end
             return a
-        end
-        # Returns a translated shape according to angles around the focus.
-        def transform_shape (shape)
-            return shape.translated(@view_angles.x,@view_angles.y,@focus)
-        end
-        # Sets tilt and turn and changes the rotation angle
-        # accordingly. x,z and z,y
-        #
-        def tilt (tia)
-            @view_angles.y = tia #x,z
-            #@view_angles.y = tua #z,y
-            c = Little::Point.new
-            p = @reference_pt.tilt(tia,c)#.turn(tua,c)
-            #puts "tilt #{p}"
-            #p = p.turn(tua,c)
-            # r = Math.acos(a/h)
-            d = p.distance_zy(c) - 1
-            #puts "d #{d}"
-            #@view_angles.x = Math.acos(d).radians_to_degrees
-            puts "#{p} => #{d} => #{@view_angles}"
-            @changed = true
-            @reference_pt = p
-            #@view_angles.x
-        end
-        # x,z and x,y
-        def turn (tua)
-            @view_angles.z = tua #x,z
-            #@view_angles.x = roa #x,y
-            c = Little::Point.new
-            p = @reference_pt.turn(tua,c)#.rotate(roa,c)
-            d = p.distance_xz(c) - 1#Math.sqrt((p.x-c.x)**2 + (p.z-c.z)**2)
-            #@view_angles.y = Math.acos(d).radians_to_degrees
-            puts "#{p} => #{d} => #{@view_angles}"
-            @changed = true
-            @reference_pt = p
-            #@view_angles.y
-        end
-        # z,y and x,y
-        def rotate (roa)
-            @view_angles.x = roa #x,y
-            #@view_angles.y = tia #z,y
-            c = Little::Point.new
-            p = @reference_pt.rotate(roa,c)#.tilt(tia,c)
-            d = p.distance_xy(c) - 1
-            #@view_angles.z = Math.acos(d).radians_to_degrees
-            puts "#{p} => #{d} => #{@view_angles}"
-            @changed = true
-            @reference_pt = p
-            #@view_angles.z
         end
     end
 end
